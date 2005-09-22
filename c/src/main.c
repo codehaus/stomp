@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	rc==APR_SUCCESS || die(-2, "Could not allocate pool", rc);
    
    fprintf(stdout, "Connecting......");
-   rc=stomp_connect( &connection, "localhost", 41414, pool);
+   rc=stomp_connect( &connection, "localhost", 61626, pool);
 	rc==APR_SUCCESS || die(-2, "Could not connect", rc);
    fprintf(stdout, "OK\n");
       
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
       stomp_frame *frame;
       rc = stomp_read(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not read frame", rc);
-      fprintf(stdout, "Response: %s\n", frame->command);
+      fprintf(stdout, "Response: %s, %s\n", frame->command, frame->body);
    }     
    fprintf(stdout, "OK\n");
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
       stomp_frame frame;
       frame.command = "SUB";
       frame.headers = apr_hash_make(pool);
-      apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "FOO.BAR");      
+      apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "/queue/FOO.BAR");      
       frame.body = NULL;
       rc = stomp_write(connection, &frame);
       rc==APR_SUCCESS || die(-2, "Could not send frame", rc);
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
       stomp_frame frame;
       frame.command = "SEND";
       frame.headers = apr_hash_make(pool);
-      apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "FOO.BAR");
+      apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "/queue/FOO.BAR");
       
       frame.body = "This is the message";
       rc = stomp_write(connection, &frame);
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
       stomp_frame *frame;
       rc = stomp_read(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not read frame", rc);
-      fprintf(stdout, "Response: %s\n", frame->command);
+      fprintf(stdout, "Response: %s, %s\n", frame->command, frame->body);
    }     
    fprintf(stdout, "OK\n");
    
