@@ -12,7 +12,7 @@ class TestStomp < Test::Unit::TestCase
     @conn.disconnect
   end
 
-  def _test_connection_exists
+  def test_connection_exists
     assert_not_nil @conn
   end
 
