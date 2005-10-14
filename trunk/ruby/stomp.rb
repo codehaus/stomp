@@ -1,22 +1,24 @@
 require 'socket'
+require 'thread'
 
 module Stomp
   class Connection
+    attr_reader :queued_messages
 
-    def Connection.open(login, passcode, host='localhost', port=61613)
+    def Connection.open(login = "", passcode = "", host='localhost', port=61613)
       Connection.new login, passcode, host, port
     end
 
     def initialize(login, passcode, host='localhost', port=61613)
+      @queued_messages = []
       @listeners = {}
+      @transmit_semaphore = Mutex.new
+      @read_semaphore = Mutex.new
+      @async_semaphore = Mutex.new
       @socket = TCPSocket.open host, port
       transmit "CONNECT", {:login => login, :passcode => passcode}
       @started = true
-      Thread.new do
-        while @started
-          receive @socket.gets.chomp
-        end
-      end
+      puts receive()
     end
 
     def begin headers={}
@@ -33,7 +35,21 @@ module Stomp
 
     def subscribe(name, headers = {})
       if block_given?
+        unless @async
+          @asynch_semaphore.synchronize do
+            unless @asynch
+              @asynch = true
+              Thread.new do
+                while @started
+                  raise "WOMBATS"
+                end
+              end 
+            end
+          end
+        end
+        @asynch = true
         @listeners[name] = lambda {|m| yield m}
+        
       end
       headers[:destination] = name
       transmit "SUBSCRIBE", headers
@@ -58,15 +74,42 @@ module Stomp
       @receipt_listener = lambda { |msg| yield msg }
     end
     
+    def receive
+      if @asynch
+        sleep 10 until (m = @queued_messages.shift) 
+        return m
+      else
+        line = ' '
+        message = @read_semaphore.synchronize do
+          line = @socket.gets.chomp while line =~ /\A\s*\Z/ 
+          Message.new do |m|
+            m.command = line.chomp
+            m.headers = {}
+            until (line = @socket.gets.chomp) == ''
+              k = (line.strip[0, line.strip.index(':')]).strip
+              v = (line.strip[line.strip.index(':') + 1, line.strip.length]).strip
+              m.headers[k] = v
+            end
+            m.body = ''
+            until (c = @socket.getc) == 0
+              m.body << c.chr
+            end
+          end
+        end
+        return message
+      end
+    end
+    
     private
-    def receive(command)
+    def asynch_receive(command)
       return if command =~ /\A\s*\Z/
 
       m = Message.new do |m|
         m.command = command
         m.headers = {}
         until (line = @socket.gets.chomp) == ''
-          k,v = line.split ":"
+          k = (line.strip[0, line.strip.index(':')]).strip
+          v = (line.strip[line.strip.index(':') + 1, line.strip.length]).strip
           m.headers[k] = v
         end
         m.body = ''
@@ -86,11 +129,13 @@ module Stomp
     end
 
     def transmit(command, headers={}, body='')
-      @socket.puts command
-      headers.each {|k,v| @socket.puts "#{k}:#{v}" }
-      @socket.puts
-      @socket.puts body
-      @socket.puts "\000"
+      @transmit_semaphore.synchronize do
+        @socket.puts command
+        headers.each {|k,v| @socket.puts "#{k}:#{v}" }
+        @socket.puts
+        @socket.puts body
+        @socket.puts "\000"
+      end
     end
   end
 
