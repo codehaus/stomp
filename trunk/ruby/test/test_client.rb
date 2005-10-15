@@ -27,7 +27,35 @@ class TestClient < Test::Unit::TestCase
     received = false
     @client.subscribe("/queue/a") {|msg| received = msg}
     @client.send "/queue/a", "hello world"
-    sleep 0.1 until received
+    sleep 0.01 until received
+    assert_not_nil received
+  end
+  
+  def test_ack_api_works
+    received = false
+    @client.subscribe("/queue/a", :ack => 'client') {|msg| received = msg}
+    @client.send "/queue/a", "hello world"
+    sleep 0.01 until received
+    receipt = nil
+    @client.acknowledge(received) {|r| receipt = r}
+    sleep 0.01 until receipt
+    assert_not_nil receipt.headers['receipt-id']
+  end
+
+  def test_noack
+    received = false
+    @client.subscribe("/queue/a", :ack => 'client') {|msg| received = msg}
+    @client.send "/queue/a", "hello world"
+    sleep 0.01 until received
+    @client.close
+    
+    # was never acked so should be resent to next client
+
+    @client = Stomp::Client.new "test", "user", "localhost", 61613
+    received = nil
+    @client.subscribe("/queue/a") {|msg| received = msg}
+    sleep 0.01 until received
+    assert_not_nil received
   end
 
   def test_receipts

@@ -27,6 +27,11 @@ module Stomp
       transmit "BEGIN", headers
     end
 
+    def ack message_id, headers={}
+      headers['message-id'] = message_id
+      transmit "ACK", headers
+    end
+
     def commit name="default-transaction", headers={ :transaction => name }
       transmit "COMMIT", headers
     end
