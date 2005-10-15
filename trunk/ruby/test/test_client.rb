@@ -64,4 +64,42 @@ class TestClient < Test::Unit::TestCase
     @client.send("/queue/a", "hello world") {|r| receipt = r}
     sleep 0.1 until receipt
   end
+
+  def test_send_then_sub
+    @client.send "/queue/a", "hello world"
+    message = nil
+    @client.subscribe("/queue/a") {|m| message = m}
+    sleep 0.01 until message
+    assert_not_nil message
+  end
+
+  def test_transactional_send
+    @client.begin 'tx1'
+    @client.send "/queue/a", "hello world", :transaction => 'tx1'
+    @client.commit 'tx1'
+
+    message = nil
+    @client.subscribe("/queue/a") {|m| message = m}
+    sleep 0.01 until message
+    assert_not_nil message
+  end
+
+  def test_transaction_ack_rollback
+    @client.send "/queue/a", "hello world"
+
+    @client.begin 'tx1'
+    message = nil
+    @client.subscribe("/queue/a", :ack => 'client') {|m| message = m}
+    sleep 0.01 until message
+    @client.acknowledge message, :transaction => 'tx1'
+    @client.abort 'tx1'
+
+    @client.subscribe("/queue/a", :ack => 'client') {|m| message = m}
+    sleep 0.01 until message
+    assert_equal "hello world", message.body
+
+    @client.begin 'tx2'
+    @client.acknowledge message, :transaction => 'tx2'
+    @client.commit 'tx2'
+  end
 end
