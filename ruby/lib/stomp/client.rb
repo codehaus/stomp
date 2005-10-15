@@ -38,15 +38,18 @@ module Stomp
       @connection.subscribe destination, headers
     end
 
+    def acknowledge message, headers={}
+      if block_given?
+        headers['receipt'] = register_receipt_listener lambda {|r| yield r}
+      end
+      @connection.ack message.headers['message-id'], headers
+    end
+
     # if a block is given a receipt will be requested
     # and passed to the block on receipt
     def send destination, message, headers = {}
       if block_given?
-        @id_mutex.synchronize do
-          headers['receipt'] = @ids.to_s
-          @ids = @ids.succ
-        end
-        @receipt_listeners[headers['receipt']] = lambda { |r| yield r }
+        headers['receipt'] = register_receipt_listener lambda {|r| yield r}
       end
       @connection.send destination, message, headers
     end
@@ -60,6 +63,17 @@ module Stomp
     def close
       @running = false
       @connection.disconnect
+    end
+
+    private
+    def register_receipt_listener listener
+      id = -1
+      @id_mutex.synchronize do
+        id = @ids.to_s
+        @ids = @ids.succ
+      end
+      @receipt_listeners[id] = listener
+      id
     end
   end
 end
