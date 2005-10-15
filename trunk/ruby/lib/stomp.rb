@@ -109,12 +109,20 @@ module Stomp
             v = (line.strip[line.strip.index(':') + 1, line.strip.length]).strip
             m.headers[k] = v
           end
-          m.body = ''
-          until (c = @socket.getc) == 0
-            m.body << c.chr
+          if (m.headers['content-length'])
+            m.body = @socket.read m.headers['content-length'].to_i
+            c = @socket.getc
+            raise "Invalid content length received" unless c == 0
+          else
+            m.body = ''
+            until (c = @socket.getc) == 0
+              m.body << c.chr
+            end
           end
         end
       end
+    rescue
+      raise "Closed!"
     end
 
     private
@@ -122,9 +130,11 @@ module Stomp
       @transmit_semaphore.synchronize do
         @socket.puts command
         headers.each {|k,v| @socket.puts "#{k}:#{v}" }
+        @socket.puts "content-length: #{body.length}"
+        @socket.puts "content-type: text/plain; charset=UTF-8"
         @socket.puts
-        @socket.print body
-        @socket.print "\000"
+        @socket.write body
+        @socket.write "\0"
       end
     end
   end
@@ -157,7 +167,7 @@ module Stomp
       @listeners = {}
       @receipt_listeners = {}
       @running = true
-      Thread.start do
+      @listener_thread = Thread.start do
         while @running
           message = @connection.receive
           case
@@ -172,6 +182,12 @@ module Stomp
           end
         end
       end
+    end
+
+    # Accepts a username (default ""), password (default ""), 
+    # host (default localhost), and port (default 61613)
+    def self.open user="", pass="", host="localhost", port=61613
+      Client.new user, pass, host, port
     end
 
     # Begin a transaction by name
@@ -197,6 +213,12 @@ module Stomp
       raise "No listener given" unless block_given?
       @listeners[destination] = lambda {|msg| yield msg}
       @connection.subscribe destination, headers
+    end
+
+    # Unsubecribe from a channel
+    def unsubscribe name, headers={}
+      @connection.unsubscribe name, headers
+      @listeners[name] = nil
     end
 
     # Acknowledge a message, used then a subscription has specified 
@@ -230,8 +252,8 @@ module Stomp
     
     # Close out resources in use by this client
     def close
-      @running = false
       @connection.disconnect
+      @running = false 
     end
 
     private
