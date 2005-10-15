@@ -19,6 +19,10 @@ module Stomp
       @connect = receive()
     end
 
+    def open?
+      !@socket.closed?
+    end
+
     def begin name="default-transaction", headers={ :transaction => name }
       transmit "BEGIN", headers
     end
