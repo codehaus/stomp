@@ -15,9 +15,9 @@ spec = Gem::Specification.new do |s|
   s.email = "brian@skife.org"
   s.homepage = "http://stomp.codehaus.org/"
   s.platform = Gem::Platform::RUBY
-  s.summary = "Ruby client for the Stomp messaging protocol"
-  s.files =  "lib/stomp.rb"
-  s.require_path = "."
+  s.summary = "Ruby client xfor the Stomp messaging protocol"
+  s.files =  FileList["lib/stomp.rb"]
+  s.require_path = "lib"
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
