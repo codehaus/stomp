@@ -1,0 +1,1 @@
+require 'stomp/connection'
