@@ -21,7 +21,7 @@ module Stomp
                 listener.call(message)
               end
             when message.command == 'RECEIPT':
-              if listener = @receipt_listeners[message.headers['receipt']]
+              if listener = @receipt_listeners[message.headers['receipt-id']]
                 listener.call(message)
               end
             end
@@ -38,13 +38,13 @@ module Stomp
     # if a block is given a receipt will be requested
     # and passed to the block on receipt
     def send destination, message, headers = {}
-      #if block_given?
-      #  @id_mutex.synchronize do
-      #    headers['receipt'] = @ids.to_s
-      #    @ids = @ids.succ
-      #  end
-      #  @receipt_listeners[headers['receipt']] = lambda { |r| yield r }
-      #end
+      if block_given?
+        @id_mutex.synchronize do
+          headers['receipt'] = @ids.to_s
+          @ids = @ids.succ
+        end
+        @receipt_listeners[headers['receipt']] = lambda { |r| yield r }
+      end
       @connection.send destination, message, headers
     end
 

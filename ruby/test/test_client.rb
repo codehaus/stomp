@@ -30,4 +30,10 @@ class TestClient < Test::Unit::TestCase
     sleep 0.1 until received
   end
 
+  def test_receipts
+    receipt = false
+    @client.subscribe("/queue/a") {|m|}
+    @client.send("/queue/a", "hello world") {|r| receipt = r}
+    sleep 0.1 until receipt
+  end
 end
