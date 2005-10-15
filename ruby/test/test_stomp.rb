@@ -38,4 +38,11 @@ class TestStomp < Test::Unit::TestCase
     @conn.commit "tx1"
     assert_not_nil @conn.receive
   end
+
+  def test_client_ack_with_symbol
+    @conn.subscribe "/queue/a", :ack => :client
+    @conn.send "/queue/a", "hello world"
+    msg = @conn.receive
+    @conn.ack msg.headers['message-id']
+  end
 end

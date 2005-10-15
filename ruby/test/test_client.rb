@@ -1,6 +1,6 @@
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 require 'test/unit'
-require 'stomp/client'
+require 'stomp'
 
 class TestClient < Test::Unit::TestCase
 
