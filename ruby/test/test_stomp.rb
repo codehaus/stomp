@@ -33,7 +33,7 @@ class TestStomp < Test::Unit::TestCase
     @conn.subscribe "/queue/a"
     @conn.begin "tx1"
     @conn.send "/queue/a", "hello world", 'transaction' => "tx1"
-    sleep 0.5
+    sleep 0.01
     assert_nil @conn.poll
     @conn.commit "tx1"
     assert_not_nil @conn.receive

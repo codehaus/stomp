@@ -23,7 +23,8 @@ module Stomp
       !@socket.closed?
     end
 
-    def begin name="default-transaction", headers={ :transaction => name }
+    def begin name, headers={}
+      headers[:transaction] = name
       transmit "BEGIN", headers
     end
 
@@ -32,11 +33,13 @@ module Stomp
       transmit "ACK", headers
     end
 
-    def commit name="default-transaction", headers={ :transaction => name }
+    def commit name, headers={}
+      headers[:transaction] = name
       transmit "COMMIT", headers
     end
 
-    def abort name="default-transaction", headers={ :transaction => name }
+    def abort name, headers={}
+      headers[:transaction] = name
       transmit "ABORT", headers
     end
 

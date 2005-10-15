@@ -29,6 +29,19 @@ module Stomp
         end
       end
     end
+
+
+    def begin name, headers={}
+      @connection.begin name, headers
+    end
+
+    def abort name, headers={}
+      @connection.abort name, headers
+    end
+
+    def commit name, headers={}
+      @connection.commit name, headers
+    end
     
     # Subscribe to a destination, must be passed a block 
     # which will be used as a callback listener
