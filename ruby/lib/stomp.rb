@@ -59,7 +59,7 @@ module Stomp
     
     def receive
       line = ' '
-      message = @read_semaphore.synchronize do
+      @read_semaphore.synchronize do
         line = @socket.gets.chomp while line =~ /\A\s*\Z/ 
         Message.new do |m|
           m.command = line.chomp
@@ -75,7 +75,6 @@ module Stomp
           end
         end
       end
-      return message
     end
 
     def transmit(command, headers={}, body='')
