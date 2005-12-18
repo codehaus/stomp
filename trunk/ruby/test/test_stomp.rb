@@ -5,7 +5,7 @@ require 'stomp'
 class TestStomp < Test::Unit::TestCase
 
   def setup
-    @conn = Stomp::Connection.open "test", "user", "localhost", 61626
+    @conn = Stomp::Connection.open "test", "user", "localhost", 61613
   end
 
   def teardown
