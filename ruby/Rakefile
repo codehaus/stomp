@@ -10,12 +10,12 @@ task :default => ['test']
 
 spec = Gem::Specification.new do |s|
   s.name = "stomp"
-  s.version = "1.0.0"
+  s.version = "1.0.1"
   s.author = "Brian McCallister"
-  s.email = "brian@skife.org"
+  s.email = "brianm@apache.org"
   s.homepage = "http://stomp.codehaus.org/"
   s.platform = Gem::Platform::RUBY
-  s.summary = "Ruby client xfor the Stomp messaging protocol"
+  s.summary = "Ruby client for the Stomp messaging protocol"
   s.files =  FileList["lib/stomp.rb"]
   s.require_path = "lib"
 end
