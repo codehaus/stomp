@@ -14,8 +14,8 @@ module Stomp
 
     # Create a connection, requires a login and passcode.
     # Can accept a host (default is localhost), and port
-    # (default is 61613) to connect to
-    def initialize(login, passcode, host='localhost', port=61613)
+    # (default is 61626) to connect to
+    def initialize(login, passcode, host='localhost', port=61626)
       @transmit_semaphore = Mutex.new
       @read_semaphore = Mutex.new
 
@@ -128,13 +128,13 @@ module Stomp
     private
     def transmit(command, headers={}, body='')
       @transmit_semaphore.synchronize do
-        @socket.puts command
-        headers.each {|k,v| @socket.puts "#{k}:#{v}" }
-        @socket.puts "content-length: #{body.length}"
-        @socket.puts "content-type: text/plain; charset=UTF-8"
-        @socket.puts
-        @socket.write body
-        @socket.write "\0"
+        data = String.new
+        data << command << "\n" 
+        headers.each {|k,v| data << "#{k}:#{v}\n" }
+        data << "content-length: #{body.length}\n"
+        data << "content-type: text/plain; charset=UTF-8\n\n" 
+        data << body << "\0"
+        @socket.write data
       end
     end
   end

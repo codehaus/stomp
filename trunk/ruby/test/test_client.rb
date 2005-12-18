@@ -5,7 +5,7 @@ require 'stomp'
 class TestClient < Test::Unit::TestCase
 
   def setup
-    @client = Stomp::Client.new("test", "user", "localhost", 61613)
+    @client = Stomp::Client.new("test", "user", "localhost", 61626)
   end
 
   def teardown
