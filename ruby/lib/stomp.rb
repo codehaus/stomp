@@ -14,8 +14,8 @@ module Stomp
 
     # Create a connection, requires a login and passcode.
     # Can accept a host (default is localhost), and port
-    # (default is 61626) to connect to
-    def initialize(login, passcode, host='localhost', port=61626)
+    # (default is 61613) to connect to
+    def initialize(login, passcode, host='localhost', port=61613)
       @transmit_semaphore = Mutex.new
       @read_semaphore = Mutex.new
 
