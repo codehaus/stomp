@@ -49,12 +49,19 @@ class TestStomp < Test::Unit::TestCase
 
   def test_transaction
     @conn.subscribe make_destination
+    
     @conn.begin "tx1"
-    @conn.send make_destination, "test_stomp#test_transaction", 'transaction' => "tx1"
+    @conn.send make_destination, "txn message", 'transaction' => "tx1"
+
+    @conn.send make_destination, "first message"
+
     sleep 0.01
-    assert_nil @conn.poll
+    msg = @conn.receive
+    assert_equal "first message", msg.body
+    
     @conn.commit "tx1"
-    assert_not_nil @conn.receive
+    msg = @conn.receive
+    assert_equal "txn message", msg.body
   end
 
   def test_client_ack_with_symbol
