@@ -26,27 +26,31 @@ class TestStomp < Test::Unit::TestCase
     @conn.disconnect
   end
 
+  def make_destination
+    "/queue/test/ruby/stomp/" + name()
+  end
+  
   def test_connection_exists
     assert_not_nil @conn
   end
 
   def test_explicit_receive
-    @conn.subscribe "/queue/a"
-    @conn.send "/queue/a", "test_stomp#test_explicit_receive"
+    @conn.subscribe make_destination
+    @conn.send make_destination, "test_stomp#test_explicit_receive"
     msg = @conn.receive
     assert_equal "test_stomp#test_explicit_receive", msg.body
   end
 
   def test_receipt
-    @conn.subscribe "/queue/a", :receipt => "abc"
+    @conn.subscribe make_destination, :receipt => "abc"
     msg = @conn.receive
     assert_equal "abc", msg.headers['receipt-id']
   end
 
   def test_transaction
-    @conn.subscribe "/queue/a"
+    @conn.subscribe make_destination
     @conn.begin "tx1"
-    @conn.send "/queue/a", "test_stomp#test_transaction", 'transaction' => "tx1"
+    @conn.send make_destination, "test_stomp#test_transaction", 'transaction' => "tx1"
     sleep 0.01
     assert_nil @conn.poll
     @conn.commit "tx1"
@@ -54,15 +58,15 @@ class TestStomp < Test::Unit::TestCase
   end
 
   def test_client_ack_with_symbol
-    @conn.subscribe "/queue/a", :ack => :client
-    @conn.send "/queue/a", "test_stomp#test_client_ack_with_symbol"
+    @conn.subscribe make_destination, :ack => :client
+    @conn.send make_destination, "test_stomp#test_client_ack_with_symbol"
     msg = @conn.receive
     @conn.ack msg.headers['message-id']
   end
 
   def test_embedded_null
-    @conn.subscribe "/queue/a"
-    @conn.send "/queue/a", "a\0"
+    @conn.subscribe make_destination
+    @conn.send make_destination, "a\0"
     msg = @conn.receive
     assert_equal "a\0" , msg.body
   end
