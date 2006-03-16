@@ -14,6 +14,7 @@
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 require 'test/unit'
+require 'timeout'
 require 'stomp'
 
 class TestClient < Test::Unit::TestCase
@@ -26,32 +27,36 @@ class TestClient < Test::Unit::TestCase
     @client.close
   end
 
-  def make_destination
+  def message_text
+    "test_client#" + name()
+  end
+  
+  def destination
     "/queue/test/ruby/client/" + name()
   end
   
   def test_subscribe_requires_block
     assert_raise(RuntimeError) do
-      @client.subscribe make_destination
+      @client.subscribe destination
     end
   end
 
   def test_asynch_subscribe
     received = false
-    @client.subscribe(make_destination) {|msg| received = msg}
-    @client.send make_destination, "test_client#test_asynch_subscribe"
+    @client.subscribe(destination) {|msg| received = msg}
+    @client.send destination, message_text
     sleep 0.01 until received
 
-    assert_equal "test_client#test_asynch_subscribe", received.body
+    assert_equal message_text, received.body
   end
   
   def test_ack_api_works
-    @client.send make_destination, "test_client#test_ack_api_works"
+    @client.send destination, message_text
 
     received = nil
-    @client.subscribe(make_destination, :ack => 'client') {|msg| received = msg}
+    @client.subscribe(destination, :ack => 'client') {|msg| received = msg}
     sleep 0.01 until received
-    assert_equal "test_client#test_ack_api_works", received.body
+    assert_equal message_text, received.body
 
     receipt = nil
     @client.acknowledge(received) {|r| receipt = r}
@@ -60,72 +65,144 @@ class TestClient < Test::Unit::TestCase
   end
 
   # BROKEN
-  def _test_noack
-    @client.send make_destination, "test_client#test_noack"
+  def test_noack
+    @client.send destination, message_text
 
     received = nil
-    @client.subscribe(make_destination, :ack => :client) {|msg| received = msg}
+    @client.subscribe(destination, :ack => :client) {|msg| received = msg}
     sleep 0.01 until received
-    assert_equal "test_client#test_noack", received.body
+    assert_equal message_text, received.body
     @client.close
     
     # was never acked so should be resent to next client
 
     @client = Stomp::Client.new "test", "user", "localhost", 61613
     received = nil
-    @client.subscribe(make_destination) {|msg| received = msg}
+    @client.subscribe(destination) {|msg| received = msg}
     sleep 0.01 until received
     
-    assert_equal "test_client#test_noack", received.body
+    assert_equal message_text, received.body
   end
 
   def test_receipts
     receipt = false
-    @client.send(make_destination, "test_client#test_receipts") {|r| receipt = r}
+    @client.send(destination, message_text) {|r| receipt = r}
     sleep 0.1 until receipt
 
     message = nil
-    @client.subscribe(make_destination) {|m| message = m}
+    @client.subscribe(destination) {|m| message = m}
     sleep 0.1 until message
-    assert_equal "test_client#test_receipts", message.body
+    assert_equal message_text, message.body
   end
 
   def test_send_then_sub
-    @client.send make_destination, "test_client#test_send_then_sub"
+    @client.send destination, message_text
     message = nil
-    @client.subscribe(make_destination) {|m| message = m}
+    @client.subscribe(destination) {|m| message = m}
     sleep 0.01 until message
     
-    assert_equal "test_client#test_send_then_sub", message.body
+    assert_equal message_text, message.body
   end
 
   def test_transactional_send
     @client.begin 'tx1'
-    @client.send make_destination, "test_client#test_transactional_send", :transaction => 'tx1'
+    @client.send destination, message_text, :transaction => 'tx1'
     @client.commit 'tx1'
 
     message = nil
-    @client.subscribe(make_destination) {|m| message = m}
+    @client.subscribe(destination) {|m| message = m}
     sleep 0.01 until message
     
-    assert_equal "test_client#test_transactional_send", message.body
+    assert_equal message_text, message.body
   end
 
-  # BROKEN
-  def _test_transaction_ack_rollback
-    @client.send make_destination, "test_client#test_transaction_ack_rollback"
+  def test_transaction_send_then_rollback
+    @client.begin 'tx1'
+    @client.send destination, "first_message", :transaction => 'tx1'
+    @client.abort 'tx1'
+
+    @client.begin 'tx1'
+    @client.send destination, "second_message", :transaction => 'tx1'
+    @client.commit 'tx1'
+
+    message = nil
+    @client.subscribe(destination) {|m| message = m}
+    sleep 0.01 until message
+    assert_equal "second_message", message.body
+  end
+  
+  def test_transaction_ack_rollback_with_new_client
+    @client.send destination, message_text
 
     @client.begin 'tx1'
     message = nil
-    @client.subscribe(make_destination, :ack => 'client') {|m| message = m}
+    @client.subscribe(destination, :ack => 'client') {|m| message = m}
     sleep 0.01 until message
-    assert_equal "test_client#test_transaction_ack_rollback", message.body
+    assert_equal message_text, message.body
+    @client.acknowledge message, :transaction => 'tx1'
+    message = nil
+    @client.abort 'tx1'
+    
+    # lets recreate the connection
+    teardown
+    setup
+    @client.subscribe(destination, :ack => 'client') {|m| message = m}
+ 
+    Timeout::timeout(4) do 
+      sleep 0.01 until message
+    end
+    assert_not_nil message    
+    assert_equal message_text, message.body
+
+    @client.begin 'tx2'
+    @client.acknowledge message, :transaction => 'tx2'
+    @client.commit 'tx2'
+  end
+  
+  # BROKEN - not sure if we should support this flavour of 'transactional subscribes' as the 2nd approach is cleaner
+  def _test_transaction_with_client_side_redelivery_using_transactional_subscribes
+    @client.send destination, message_text
+
+    @client.begin 'tx1'
+    message = nil
+    @client.subscribe(destination, :transaction => 'tx1', :ack => 'client') {|m| message = m}
+    sleep 0.01 until message
+    assert_equal message_text, message.body
     @client.acknowledge message, :transaction => 'tx1'
     message = nil
     @client.abort 'tx1'
 
+    @client.subscribe(destination, :transaction => 'tx1', :ack => 'client') {|m| message = m}
+
+    Timeout::timeout(4) do 
+      sleep 0.01 until message
+    end
+    assert_not_nil message    
+    assert_equal message_text, message.body
+
+    @client.begin 'tx2'
+    @client.acknowledge message, :transaction => 'tx2'
+    @client.commit 'tx2'
+  end
+  
+  # BROKEN currently in AMQ 4.x
+  def _test_transaction_with_client_side_redelivery
+    @client.send destination, message_text
+
+    @client.begin 'tx1'
+    message = nil
+    @client.subscribe(destination, :ack => 'client') {|m| message = m}
     sleep 0.01 until message
-    assert_equal "test_client#test_transaction_ack", message.body
+    assert_equal message_text, message.body
+    @client.acknowledge message, :transaction => 'tx1'
+    message = nil
+    @client.abort 'tx1'
+
+    Timeout::timeout(4) do 
+      sleep 0.01 until message
+    end
+    assert_not_nil message    
+    assert_equal message_text, message.body
 
     @client.begin 'tx2'
     @client.acknowledge message, :transaction => 'tx2'
