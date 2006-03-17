@@ -181,6 +181,7 @@ module Stomp
       @listeners = {}
       @receipt_listeners = {}
       @running = true
+      @replay_messages_by_txn = Hash.new
       @listener_thread = Thread.start do
         while @running
           message = @connection.receive
@@ -212,10 +213,22 @@ module Stomp
     # Abort a transaction by name
     def abort name, headers={}
       @connection.abort name, headers
+
+      # lets replay any ack'd messages in this transaction      
+      replay_list = @replay_messages_by_txn[name]
+      if replay_list
+        replay_list.each do |message| 
+          if listener = @listeners[message.headers['destination']]
+            listener.call(message)
+          end
+        end
+      end
     end
 
     # Commit a transaction by name
     def commit name, headers={}
+      txn_id = headers['transaction']
+      @replay_messages_by_txn.delete(txn_id)
       @connection.commit name, headers
     end
     
@@ -240,6 +253,16 @@ module Stomp
     #
     # Accepts a transaction header ( :transaction => 'some_transaction_id' )
     def acknowledge message, headers={}
+      txn_id = headers['transaction']
+      if txn_id
+        # lets keep around messages ack'd in this transaction in case we rollback
+        replay_list = @replay_messages_by_txn[txn_id]
+        if replay_list == nil
+          replay_list = []
+          @replay_messages_by_txn[txn_id] = replay_list
+        end
+        replay_list << message
+      end
       if block_given?
         headers['receipt'] = register_receipt_listener lambda {|r| yield r}
       end
@@ -280,5 +303,12 @@ module Stomp
       @receipt_listeners[id] = listener
       id
     end
+    
+    def dispach_message message
+      if listener = @listeners[message.headers['destination']]
+        listener.call(message)
+      end
+    end
+    
   end
 end

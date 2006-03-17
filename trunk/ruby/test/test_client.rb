@@ -159,34 +159,7 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
   
-  # BROKEN - not sure if we should support this flavour of 'transactional subscribes' as the 2nd approach is cleaner
-  def _test_transaction_with_client_side_redelivery_using_transactional_subscribes
-    @client.send destination, message_text
-
-    @client.begin 'tx1'
-    message = nil
-    @client.subscribe(destination, :transaction => 'tx1', :ack => 'client') {|m| message = m}
-    sleep 0.01 until message
-    assert_equal message_text, message.body
-    @client.acknowledge message, :transaction => 'tx1'
-    message = nil
-    @client.abort 'tx1'
-
-    @client.subscribe(destination, :transaction => 'tx1', :ack => 'client') {|m| message = m}
-
-    Timeout::timeout(4) do 
-      sleep 0.01 until message
-    end
-    assert_not_nil message    
-    assert_equal message_text, message.body
-
-    @client.begin 'tx2'
-    @client.acknowledge message, :transaction => 'tx2'
-    @client.commit 'tx2'
-  end
-  
-  # BROKEN currently in AMQ 4.x
-  def _test_transaction_with_client_side_redelivery
+  def test_transaction_with_client_side_redelivery
     @client.send destination, message_text
 
     @client.begin 'tx1'
