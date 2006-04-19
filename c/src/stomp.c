@@ -155,6 +155,13 @@ apr_status_t stomp_read_buffer(stomp_connection *connection, char **data, apr_po
          
          // Keep reading bytes till end of frame
          if( tail->data[i-1]==0 ) {
+            char endline[1];
+            // We expect a newline after the null.
+            apr_socket_recv(connection->socket, endline, &length);
+            CHECK_SUCCESS;
+            if( endline[0] != '\n' ) {
+               return APR_EGENERAL;
+            }
             break;
          }
          
@@ -236,7 +243,7 @@ apr_status_t stomp_write(stomp_connection *connection, stomp_frame *frame) {
       rc = stomp_write_buffer(connection, frame->body, strlen(frame->body));
       CHECK_SUCCESS;
    }
-   rc = stomp_write_buffer(connection, "\0", 1);
+   rc = stomp_write_buffer(connection, "\0\n", 1);
    CHECK_SUCCESS;
       
 #undef CHECK_SUCCESS
