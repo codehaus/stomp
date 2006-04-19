@@ -30,6 +30,27 @@ class TestStomp < Test::Unit::TestCase
     "/queue/test/ruby/stomp/" + name()
   end
   
+  def test_transaction
+    @conn.subscribe make_destination
+    
+    # Drain the destination.
+    sleep 0.01 while 
+    sleep 0.01 while @conn.poll!=nil
+    
+    @conn.begin "tx1"
+    @conn.send make_destination, "txn message", 'transaction' => "tx1"
+
+    @conn.send make_destination, "first message"
+
+    sleep 0.01
+    msg = @conn.receive
+    assert_equal "first message", msg.body
+    
+    @conn.commit "tx1"
+    msg = @conn.receive
+    assert_equal "txn message", msg.body
+  end
+  
   def test_connection_exists
     assert_not_nil @conn
   end
@@ -47,22 +68,6 @@ class TestStomp < Test::Unit::TestCase
     assert_equal "abc", msg.headers['receipt-id']
   end
 
-  def test_transaction
-    @conn.subscribe make_destination
-    
-    @conn.begin "tx1"
-    @conn.send make_destination, "txn message", 'transaction' => "tx1"
-
-    @conn.send make_destination, "first message"
-
-    sleep 0.01
-    msg = @conn.receive
-    assert_equal "first message", msg.body
-    
-    @conn.commit "tx1"
-    msg = @conn.receive
-    assert_equal "txn message", msg.body
-  end
 
   def test_client_ack_with_symbol
     @conn.subscribe make_destination, :ack => :client
