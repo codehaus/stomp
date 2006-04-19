@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	rc==APR_SUCCESS || die(-2, "Could not allocate pool", rc);
    
    fprintf(stdout, "Connecting......");
-   rc=stomp_connect( &connection, "localhost", 61626, pool);
+   rc=stomp_connect( &connection, "localhost", 61613, pool);
 	rc==APR_SUCCESS || die(-2, "Could not connect", rc);
    fprintf(stdout, "OK\n");
       

@@ -7,11 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5321893309F5E21C00641832 /* libapr-1.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5321893209F5E21C00641832 /* libapr-1.a */; };
 		53B9ACDB08BB92DB0069CB5F /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 53B9ACA008BB90750069CB5F /* main.c */; };
-		53F9346208CC738400A507D9 /* libapr-1.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 53D4A4E508A9091000CAE09B /* libapr-1.a */; };
 		53F9347A08CC779300A507D9 /* stomp.c in Sources */ = {isa = PBXBuildFile; fileRef = 53B9AC9C08BB90750069CB5F /* stomp.c */; };
 		53F9347B08CC779A00A507D9 /* stomp.h in Headers */ = {isa = PBXBuildFile; fileRef = 53B9AC9D08BB90750069CB5F /* stomp.h */; };
-		53F9347C08CC779F00A507D9 /* libapr-1.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 53D4A4E508A9091000CAE09B /* libapr-1.a */; };
 		53F9348108CC788B00A507D9 /* stomp.c in Sources */ = {isa = PBXBuildFile; fileRef = 53B9AC9C08BB90750069CB5F /* stomp.c */; };
 /* End PBXBuildFile section */
 
@@ -50,12 +49,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5321893209F5E21C00641832 /* libapr-1.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libapr-1.a"; path = "/usr/local/apr/lib/libapr-1.a"; sourceTree = "<absolute>"; };
 		53B9AC9C08BB90750069CB5F /* stomp.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = stomp.c; path = src/stomp.c; sourceTree = "<group>"; };
 		53B9AC9D08BB90750069CB5F /* stomp.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = stomp.h; path = src/stomp.h; sourceTree = "<group>"; };
 		53B9ACA008BB90750069CB5F /* main.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = main.c; path = src/main.c; sourceTree = "<group>"; };
 		53B9ACAA08BB90DD0069CB5F /* libstomp.1 */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.man; name = libstomp.1; path = docs/libstomp.1; sourceTree = "<group>"; };
-		53B9ACBD08BB91AE0069CB5F /* example */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = example; sourceTree = BUILT_PRODUCTS_DIR; };
-		53D4A4E508A9091000CAE09B /* libapr-1.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libapr-1.a"; path = "../../apr/lib/libapr-1.a"; sourceTree = "<group>"; };
+		53B9ACBD08BB91AE0069CB5F /* example */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = example; sourceTree = BUILT_PRODUCTS_DIR; };
 		53F9347308CC777D00A507D9 /* libstomp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libstomp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -64,7 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				53F9346208CC738400A507D9 /* libapr-1.a in Frameworks */,
+				5321893309F5E21C00641832 /* libapr-1.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,7 +71,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				53F9347C08CC779F00A507D9 /* libapr-1.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,7 +110,7 @@
 		53B9ACAC08BB91090069CB5F /* Libs */ = {
 			isa = PBXGroup;
 			children = (
-				53D4A4E508A9091000CAE09B /* libapr-1.a */,
+				5321893209F5E21C00641832 /* libapr-1.a */,
 			);
 			name = Libs;
 			sourceTree = "<group>";
@@ -266,7 +264,10 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = "$(HOME)/bin";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../apr/lib\"";
+				LIBRARY_SEARCH_PATHS = (
+					"$(SRCROOT)/../../apr/lib",
+					/usr/local/apr/lib,
+				);
 				OPTIMIZATION_CFLAGS = "-O0";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -289,7 +290,10 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = "$(HOME)/bin";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../apr/lib\"";
+				LIBRARY_SEARCH_PATHS = (
+					"$(SRCROOT)/../../apr/lib",
+					/usr/local/apr/lib,
+				);
 				OPTIMIZATION_CFLAGS = "-O0";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -311,7 +315,10 @@
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = "$(HOME)/bin";
-				LIBRARY_SEARCH_PATHS = "\"$(SRCROOT)/../../apr/lib\"";
+				LIBRARY_SEARCH_PATHS = (
+					"$(SRCROOT)/../../apr/lib",
+					/usr/local/apr/lib,
+				);
 				OPTIMIZATION_CFLAGS = "-O0";
 				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "";
@@ -330,7 +337,7 @@
 		53D4A41E08A8931000CAE09B /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = ppc;
+				ARCHS = i386;
 				HEADER_SEARCH_PATHS = "/usr/local/apr/include/apr-1";
 				LIBRARY_SEARCH_PATHS = /usr/local/apr/lib;
 			};
@@ -339,7 +346,7 @@
 		53D4A41F08A8931000CAE09B /* Deployment */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = ppc;
+				ARCHS = i386;
 				HEADER_SEARCH_PATHS = "/usr/local/apr/include/apr-1";
 				LIBRARY_SEARCH_PATHS = /usr/local/apr/lib;
 			};
@@ -348,7 +355,7 @@
 		53D4A42008A8931000CAE09B /* Default */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = ppc;
+				ARCHS = i386;
 				HEADER_SEARCH_PATHS = "/usr/local/apr/include/apr-1";
 				LIBRARY_SEARCH_PATHS = /usr/local/apr/lib;
 			};
@@ -481,6 +488,7 @@
 				53B9ACC608BB92030069CB5F /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
 		};
 		53D4A41D08A8931000CAE09B /* Build configuration list for PBXProject "libstomp" */ = {
 			isa = XCConfigurationList;
@@ -500,6 +508,7 @@
 				53F9347908CC778200A507D9 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
 		};
 /* End XCConfigurationList section */
 	};
