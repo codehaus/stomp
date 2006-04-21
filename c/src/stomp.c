@@ -243,7 +243,7 @@ apr_status_t stomp_write(stomp_connection *connection, stomp_frame *frame) {
       rc = stomp_write_buffer(connection, frame->body, strlen(frame->body));
       CHECK_SUCCESS;
    }
-   rc = stomp_write_buffer(connection, "\0\n", 1);
+   rc = stomp_write_buffer(connection, "\0\n", 2);
    CHECK_SUCCESS;
       
 #undef CHECK_SUCCESS
