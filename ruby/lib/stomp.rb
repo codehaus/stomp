@@ -276,6 +276,12 @@ module Stomp
         end
       end
     end
+    
+    # Join the listener thread for this client,
+    # generally used to wait for a quit signal
+    def join
+      @listener_thread.join
+    end
 
     # Accepts a username (default ""), password (default ""), 
     # host (default localhost), and port (default 61613)
