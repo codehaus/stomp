@@ -24,7 +24,7 @@ task :default => ['test']
 
 spec = Gem::Specification.new do |s|
   s.name = "stomp"
-  s.version = "1.0.1"
+  s.version = "1.0.2"
   s.author = "Brian McCallister"
   s.email = "brianm@apache.org"
   s.homepage = "http://stomp.codehaus.org/"
