@@ -125,7 +125,7 @@ class StompConnection {
             $headers["transaction"] = $transactionId;
         }
         $headers["message-id"] = $messageId ;
-        $this->writeFrame( new StompFrame("ABORT", $headers) );
+        $this->writeFrame( new StompFrame("ACK", $headers) );
     }
     
     function disconnect() {
@@ -163,7 +163,9 @@ class StompConnection {
         if( $rc == false ) {
             return null;
         }       
-        
+       
+        $data = NULL;
+
         // Read until end of frame.
         while( ord($b) != 0  ) {
 
