@@ -30,7 +30,7 @@ class TestStomp < Test::Unit::TestCase
     "/queue/test/ruby/stomp/" + name()
   end
   
-  def test_transaction
+  def _test_transaction
     @conn.subscribe make_destination
     
     # Drain the destination.

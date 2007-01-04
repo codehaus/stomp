@@ -159,6 +159,18 @@ class TestClient < Test::Unit::TestCase
     @client.commit 'tx2'
   end
   
+  def test_unsubscribe
+    message = nil
+    client = Stomp::Client.new("test", "user", "localhost", 61613, true)
+    client.subscribe(destination, :ack => 'client') { |m| message = m }
+    @client.send destination, message_text
+    Timeout::timeout(4) do 
+      sleep 0.01 until message
+    end
+    client.unsubscribe destination # was throwing exception on unsub at one point
+    
+  end
+  
   def test_transaction_with_client_side_redelivery
     @client.send destination, message_text
 

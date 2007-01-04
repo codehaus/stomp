@@ -126,7 +126,7 @@ module Stomp
       transmit "UNSUBSCRIBE", headers
       if @reliable
         subId = name if subId==NIL
-        @h.delete(subId)
+        @subscriptions.delete(subId)
       end
     end
   
@@ -171,7 +171,7 @@ module Stomp
     def _receive( s )
       line = ' '
       @read_semaphore.synchronize do
-        line = s.gets
+        line = s.gets while line =~ /^\s*$/
         return NIL if line == NIL
         Message.new do |m|
           m.command = line.chomp
@@ -192,8 +192,8 @@ module Stomp
               m.body << c.chr
             end
           end
-          c = s.getc
-          raise "Invalid frame termination received" unless c == 10
+          #c = s.getc
+          #raise "Invalid frame termination received" unless c == 10
         end
       end
     end
