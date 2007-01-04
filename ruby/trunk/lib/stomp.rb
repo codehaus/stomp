@@ -23,14 +23,14 @@ module Stomp
   # synchronous receives
   class Connection
 
-    def Connection.open(login = "", passcode = "", host='localhost', port=61613, reliable=FALSE)
-      Connection.new login, passcode, host, port, reliable
+    def Connection.open(login = "", passcode = "", host='localhost', port=61613, reliable=FALSE, reconnectDelay=5)
+      Connection.new login, passcode, host, port, reliable, reconnectDelay
     end
 
     # Create a connection, requires a login and passcode.
     # Can accept a host (default is localhost), and port
     # (default is 61613) to connect to
-    def initialize(login, passcode, host='localhost', port=61613, reliable=FALSE)
+    def initialize(login, passcode, host='localhost', port=61613, reliable=false, reconnectDelay=5)
       @host = host
       @port = port
       @login = login
@@ -39,7 +39,7 @@ module Stomp
       @read_semaphore = Mutex.new
       @socket_semaphore = Mutex.new
       @reliable = reliable
-      @reconnectDelay = 5
+      @reconnectDelay = reconnectDelay
       @closed = FALSE
       @subscriptions = {}
       @failure = NIL
@@ -153,7 +153,7 @@ module Stomp
     end
       
     # Receive a frame, block until the frame is received
-    def receive
+    def __old_receive
       # The recive my fail so we may need to retry.
       while TRUE
         begin
@@ -166,7 +166,17 @@ module Stomp
         end
       end
     end
-      
+    
+    def receive
+      super_result = __old_receive()
+      if super_result.nil? && @reliable
+        $stderr.print "connection.receive returning EOF as nil - resetting connection.\n"
+        @socket = nil
+        super_result = __old_receive()
+      end         
+      return super_result
+    end
+
     private
     def _receive( s )
       line = ' '
