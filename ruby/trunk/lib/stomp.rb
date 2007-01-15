@@ -24,7 +24,7 @@ module Stomp
   class Connection
 
     def Connection.open(login = "", passcode = "", host='localhost', port=61613, reliable=FALSE, reconnectDelay=5)
-      Connection.new login, passcode, host, port, reliable, reconnectDelay
+      Connection.new login, passcode, host, port, reliable, reconnectDelay        
     end
 
     # Create a connection, requires a login and passcode.
@@ -260,7 +260,21 @@ module Stomp
 
     # Accepts a username (default ""), password (default ""), 
     # host (default localhost), and port (default 61613)
-    def initialize user="", pass="", host="localhost", port=61613, reliable=FALSE
+    def initialize user="", pass="", host="localhost", port=61613, reliable=false
+      if user =~ /stomp:\/\/(\w+):(\d+)/
+        user = ""
+        pass = ""
+        host = $1
+        port = $2
+        reliable = false
+      elsif user =~ /stomp:\/\/(\w+):(\w+)@(\w+):(\d+)/
+        user = $1
+        pass = $2
+        host = $3
+        port = $4
+        reliable = false
+      end
+      
       @id_mutex = Mutex.new
       @ids = 1
       @connection = Connection.open user, pass, host, port, reliable
@@ -295,8 +309,8 @@ module Stomp
 
     # Accepts a username (default ""), password (default ""), 
     # host (default localhost), and port (default 61613)
-    def self.open user="", pass="", host="localhost", port=61613
-      Client.new user, pass, host, port
+    def self.open user="", pass="", host="localhost", port=61613, reliable=false
+      Client.new user, pass, host, port, reliable
     end
 
     # Begin a transaction by name
