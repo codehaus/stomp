@@ -261,13 +261,13 @@ module Stomp
     # Accepts a username (default ""), password (default ""), 
     # host (default localhost), and port (default 61613)
     def initialize user="", pass="", host="localhost", port=61613, reliable=false
-      if user =~ /stomp:\/\/(\w+):(\d+)/
+      if user =~ /stomp:\/\/([\w\.]+):(\d+)/
         user = ""
         pass = ""
         host = $1
         port = $2
         reliable = false
-      elsif user =~ /stomp:\/\/(\w+):(\w+)@(\w+):(\d+)/
+      elsif user =~ /stomp:\/\/([\w\.]+):(\w+)@(\w+):(\d+)/
         user = $1
         pass = $2
         host = $3
