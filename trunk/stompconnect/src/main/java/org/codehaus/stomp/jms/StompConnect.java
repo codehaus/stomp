@@ -21,6 +21,8 @@ import org.codehaus.stomp.StompHandler;
 import org.codehaus.stomp.StompHandlerFactory;
 import org.codehaus.stomp.tcp.TcpTransportServer;
 import org.codehaus.stomp.util.ServiceSupport;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import javax.jms.ConnectionFactory;
 import javax.naming.InitialContext;
@@ -37,6 +39,8 @@ import java.util.Hashtable;
  * @version $Revision$
  */
 public class StompConnect extends ServiceSupport implements StompHandlerFactory {
+    private static final transient Log log = LogFactory.getLog(StompConnect.class);
+
     private ConnectionFactory connectionFactory;
     private String uri = "tcp://localhost:61613";
     private URI location;
@@ -198,15 +202,18 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
      * By default lets try looking in JNDI
      */
     protected ConnectionFactory createConnectionFactory() throws NamingException {
-        Object value = getInitialContext().lookup(getJndiName());
+        String name = getJndiName();
+        log.info("Looking up name: " + name + " in JNDI InitialContext for JMS ConnectionFactory");
+
+        Object value = getInitialContext().lookup(name);
         if (value == null) {
-            throw new IllegalArgumentException("No ConnectionFactory object is available in JNDI at name: " + getJndiName());
+            throw new IllegalArgumentException("No ConnectionFactory object is available in JNDI at name: " + name);
         }
         if (value instanceof ConnectionFactory) {
             return (ConnectionFactory) value;
         }
         else {
-            throw new IllegalArgumentException("The object in JNDI at name: " + getJndiName()
+            throw new IllegalArgumentException("The object in JNDI at name: " + name
                     + " cannot be cast to ConnectionFactory. "
                     + "Either a JNDI configuration issue or you have multiple JMS API jars on your classpath. " +
                     "Actual Object was: " + value);
