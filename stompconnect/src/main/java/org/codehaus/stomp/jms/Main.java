@@ -24,15 +24,49 @@ package org.codehaus.stomp.jms;
  * @version $Revision$
  */
 public class Main {
+    protected StompConnect connect = new StompConnect();
+
     public static void main(String[] args) {
         try {
-            StompConnect connect = new StompConnect();
-            connect.start();
-            connect.join();
+            Main main = new Main();
+            if (main.parseArguments(args)) {
+                main.run();
+            }
         }
         catch (Exception e) {
             System.out.println("Caught: " + e);
             e.printStackTrace();
         }
+    }
+
+    public void run() throws Exception {
+        connect.start();
+        connect.join();
+    }
+
+    public boolean parseArguments(String[] args) {
+        if (args.length > 0) {
+            String arg = args[0];
+            if (arg.startsWith("?") || arg.equals("-?") || arg.equals("-h") || arg.startsWith("--h")) {
+                printOptions();
+                return false;
+            }
+            connect.setUri(arg);
+
+            if (args.length > 1) {
+                connect.setJndiName(args[1]);
+            }
+        }
+        return true;
+    }
+
+    protected void printOptions() {
+        System.out.println("StompConnect");
+        System.out.println();
+        System.out.println("Arguments: <uri> <jndiName>");
+        System.out.println("    uri      = the host and port to listen on for STOMP traffic");
+        System.out.println("    jndiName = the name in the default JNDI context to look for the ConnectionFactory");
+        System.out.println();
+        System.out.println("For more help see http://stomp.codehaus.org/StompConnect");
     }
 }
