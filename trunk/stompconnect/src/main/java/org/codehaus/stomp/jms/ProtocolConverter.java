@@ -282,7 +282,7 @@ public class ProtocolConverter implements StompHandler {
         }
         else {
             String ackMode = (String) headers.get(Stomp.Headers.Subscribe.ACK_MODE);
-            if (Stomp.Headers.Subscribe.AckModeValues.CLIENT.equals(ackMode)) {
+            if (ackMode != null && Stomp.Headers.Subscribe.AckModeValues.CLIENT.equals(ackMode)) {
                 session = getClientAckSession();
             }
             else {
@@ -364,7 +364,7 @@ public class ProtocolConverter implements StompHandler {
         if (defaultSession == null) {
             defaultSession = createSession(Session.AUTO_ACKNOWLEDGE);
         }
-        return null;
+        return defaultSession;
     }
 
     protected StompSession getClientAckSession() throws JMSException {
