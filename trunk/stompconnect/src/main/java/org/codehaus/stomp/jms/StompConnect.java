@@ -23,10 +23,13 @@ import org.codehaus.stomp.tcp.TcpTransportServer;
 import org.codehaus.stomp.util.ServiceSupport;
 
 import javax.jms.ConnectionFactory;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.net.ServerSocketFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Hashtable;
 
 /**
  * This class represents a service which accepts STOMP socket connections and binds them to JMS operations
@@ -39,15 +42,24 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
     private URI location;
     private ServerSocketFactory serverSocketFactory;
     private TcpTransportServer tcpServer;
+    private InitialContext initialContext;
+    private String jndiName = "ConnectionFactory";
+    private Hashtable jndiEnvironment = new Hashtable();
 
-    public StompHandler createStompHandler(StompHandler outputHandler) {
+    public StompConnect() {
+    }
+
+    public StompConnect(ConnectionFactory connectionFactory) {
+        this.connectionFactory = connectionFactory;
+    }
+
+    public StompHandler createStompHandler(StompHandler outputHandler) throws NamingException {
         ConnectionFactory factory = getConnectionFactory();
         if (factory == null) {
             throw new IllegalArgumentException("No ConnectionFactory is configured!");
         }
         return new ProtocolConverter(factory, outputHandler);
     }
-
 
     /**
      * Joins with the background thread until the transport is stopped
@@ -58,7 +70,10 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
 
     // Properties
     //-------------------------------------------------------------------------
-    public ConnectionFactory getConnectionFactory() {
+    public ConnectionFactory getConnectionFactory() throws NamingException {
+        if (connectionFactory == null) {
+            connectionFactory = createConnectionFactory();
+        }
         return connectionFactory;
     }
 
@@ -74,7 +89,7 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
     }
 
     /**
-     * Sets the URL for the hostname/IP address and port to listen on
+     * Sets the URI string for the hostname/IP address and port to listen on for STOMP frames
      */
     public void setUri(String uri) {
         this.uri = uri;
@@ -87,6 +102,9 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
         return location;
     }
 
+    /**
+     * Sets the URI for the hostname/IP address and port to listen on for STOMP frames
+     */
     public void setLocation(URI location) {
         this.location = location;
     }
@@ -98,6 +116,9 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
         return serverSocketFactory;
     }
 
+    /**
+     * Sets the {@link ServerSocketFactory} to use to listen for STOMP frames
+     */
     public void setServerSocketFactory(ServerSocketFactory serverSocketFactory) {
         this.serverSocketFactory = serverSocketFactory;
     }
@@ -113,9 +134,54 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
         this.tcpServer = tcpServer;
     }
 
+    public InitialContext getInitialContext() throws NamingException {
+        if (initialContext == null) {
+            initialContext = new InitialContext(jndiEnvironment);
+        }
+        return initialContext;
+    }
+
+    /**
+     * Allows an initial context to be configured which is used if no explicit {@link ConnectionFactory}
+     * is configured via the {@link #setConnectionFactory(ConnectionFactory)} method
+     */
+    public void setInitialContext(InitialContext initialContext) {
+        this.initialContext = initialContext;
+    }
+
+    public String getJndiName() {
+        return jndiName;
+    }
+
+    /**
+     * Allows the JNDI name to be configured which is used to perform a JNDI lookup
+     * if no explicit {@link ConnectionFactory}
+     * is configured via the {@link #setConnectionFactory(ConnectionFactory)} method
+     */
+    public void setJndiName(String jndiName) {
+        this.jndiName = jndiName;
+    }
+
+    public Hashtable getJndiEnvironment() {
+        return jndiEnvironment;
+    }
+
+    /**
+     * Sets the JNDI environment used if an {@link InitialContext} is lazily created if no explicit {@link ConnectionFactory}
+     * is configured via the {@link #setConnectionFactory(ConnectionFactory)} method
+     */
+    public void setJndiEnvironment(Hashtable jndiEnvironment) {
+        this.jndiEnvironment = jndiEnvironment;
+    }
+
     // Implementation methods
     //-------------------------------------------------------------------------
     protected void doStart() throws Exception {
+        ConnectionFactory factory = getConnectionFactory();
+        if (factory == null) {
+            throw new IllegalArgumentException("No ConnectionFactory has been configured!");
+        }
+
         getTcpServer().start();
     }
 
@@ -125,5 +191,25 @@ public class StompConnect extends ServiceSupport implements StompHandlerFactory 
 
     protected TcpTransportServer createTcpServer() throws IOException, URISyntaxException {
         return new TcpTransportServer(this, getLocation(), getServerSocketFactory());
+    }
+
+    /**
+     * Factory method to lazily create a {@link ConnectionFactory} if one is not explicitly configured.
+     * By default lets try looking in JNDI
+     */
+    protected ConnectionFactory createConnectionFactory() throws NamingException {
+        Object value = getInitialContext().lookup(getJndiName());
+        if (value == null) {
+            throw new IllegalArgumentException("No ConnectionFactory object is available in JNDI at name: " + getJndiName());
+        }
+        if (value instanceof ConnectionFactory) {
+            return (ConnectionFactory) value;
+        }
+        else {
+            throw new IllegalArgumentException("The object in JNDI at name: " + getJndiName()
+                    + " cannot be cast to ConnectionFactory. "
+                    + "Either a JNDI configuration issue or you have multiple JMS API jars on your classpath. " +
+                    "Actual Object was: " + value);
+        }
     }
 }

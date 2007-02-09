@@ -23,7 +23,6 @@ package org.codehaus.stomp;
  * @version $Revision$
  */
 public interface StompHandler {
-
     void onStompFrame(StompFrame frame) throws Exception;
 
     void onException(Exception e);

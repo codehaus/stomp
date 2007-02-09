@@ -28,6 +28,7 @@ import org.codehaus.stomp.util.ServiceSupport;
 import javax.net.SocketFactory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.InetAddress;
@@ -136,7 +137,11 @@ public class TcpTransport extends ServiceSupport implements Runnable, StompHandl
                 catch (Exception e2) {
                     log.warn("Caught while closing: " + e2 + ". Now Closed", e2);
                 }
-                inputHandler.onException(e);
+
+                // no need to log EOF exceptions
+                if (!(e instanceof EOFException)) {
+                    inputHandler.onException(e);
+                }
             }
         }
     }

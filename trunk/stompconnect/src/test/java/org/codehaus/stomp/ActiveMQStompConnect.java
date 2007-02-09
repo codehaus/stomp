@@ -17,15 +17,15 @@
  */
 package org.codehaus.stomp;
 
-import org.codehaus.stomp.jms.StompConnect;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.codehaus.stomp.jms.StompConnect;
 
 /**
  * A Stomp Broker using StompConnect and Apache ActiveMQ
+ *
  * @version $Revision$
  */
 public class ActiveMQStompConnect {
-
     public static void main(String[] args) {
         try {
             StompConnect connect = new StompConnect();

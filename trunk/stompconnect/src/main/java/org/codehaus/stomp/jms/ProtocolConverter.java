@@ -17,14 +17,14 @@
  */
 package org.codehaus.stomp.jms;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.codehaus.stomp.ProtocolException;
 import org.codehaus.stomp.Stomp;
 import org.codehaus.stomp.StompFrame;
 import org.codehaus.stomp.StompFrameError;
 import org.codehaus.stomp.StompHandler;
 import org.codehaus.stomp.util.IntrospectionSupport;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -32,7 +32,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.Session;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -47,7 +46,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ProtocolConverter implements StompHandler {
     private static final transient Log log = LogFactory.getLog(ProtocolConverter.class);
-
     private ConnectionFactory connectionFactory;
     private final StompHandler outputHandler;
     private Connection connection;
@@ -231,14 +229,17 @@ public class ProtocolConverter implements StompHandler {
 
         String stompTx = (String) headers.get(Stomp.Headers.TRANSACTION);
 
-        if (!headers.containsKey(Stomp.Headers.TRANSACTION)) {
+        if (stompTx == null) {
             throw new ProtocolException("Must specify the transaction you are beginning");
         }
 
-        StompSession session = getTransactedSession(stompTx, false);
+        StompSession session = getTransactedSession(stompTx);
         if (session != null) {
-            throw new ProtocolException("The transaction was allready started: " + stompTx);
+            throw new ProtocolException("The transaction was already started: " + stompTx);
         }
+        session = createTransactedSession(stompTx);
+        setTransactedSession(stompTx, session);
+
         sendResponse(command);
     }
 
@@ -253,6 +254,7 @@ public class ProtocolConverter implements StompHandler {
 
         StompSession session = getExistingTransactedSession(stompTx);
         session.getSession().commit();
+        considerClosingTransactedSession(session, stompTx);
         sendResponse(command);
     }
 
@@ -267,6 +269,7 @@ public class ProtocolConverter implements StompHandler {
 
         StompSession session = getExistingTransactedSession(stompTx);
         session.getSession().rollback();
+        considerClosingTransactedSession(session, stompTx);
         sendResponse(command);
     }
 
@@ -378,22 +381,19 @@ public class ProtocolConverter implements StompHandler {
      * Returns the transacted session for the given ID or throws an exception if there is no such session
      */
     protected StompSession getExistingTransactedSession(String stompTx) throws ProtocolException, JMSException {
-        StompSession session = getTransactedSession(stompTx, false);
+        StompSession session = getTransactedSession(stompTx);
         if (session == null) {
             throw new ProtocolException("Invalid transaction id: " + stompTx);
         }
         return session;
     }
 
-    protected StompSession getTransactedSession(String stompTx, boolean autoCreate) throws ProtocolException, JMSException {
-        StompSession answer = (StompSession) transactedSessions.get(stompTx);
-        if (autoCreate) {
-            if (answer == null) {
-                answer = createTransactedSession(stompTx);
-                transactedSessions.put(stompTx, answer);
-            }
-        }
-        return answer;
+    protected StompSession getTransactedSession(String stompTx) throws ProtocolException, JMSException {
+        return (StompSession) transactedSessions.get(stompTx);
+    }
+
+    protected void setTransactedSession(String stompTx, StompSession session) {
+        transactedSessions.put(stompTx, session);
     }
 
     protected StompSession createSession(int autoAcknowledge) throws JMSException {
@@ -420,5 +420,12 @@ public class ProtocolConverter implements StompHandler {
 
     protected void sendToStomp(StompFrame frame) throws Exception {
         outputHandler.onStompFrame(frame);
+    }
+
+    /**
+     * A provider may wish to eagerly close transacted sessions when they are no longer used.
+     * Though a better option would be to just time them out after they have no longer been used.
+     */
+    protected void considerClosingTransactedSession(StompSession session, String stompTx) {
     }
 }
