@@ -7,7 +7,26 @@
   <version>1.0-SNAPSHOT</version>
 
   <name>stompconnect</name>
+  <description>
+    StompConnect allows any Message Orientated Middleware (MOM)
+    products to be exposed as STOMP brokers so that any
+    STOMP Client can interop with it.
+  </description>
   <url>http://stomp.codehaus.org/</url>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:svn:http://svn.codehaus.org/stomp/trunk/stompconnect</connection>
+    <developerConnection>scm:svn:https://${maven.username}@svn.codehaus.org/stomp/trunk/stompconnect</developerConnection>
+    <url>http://svn.codehaus.org/stomp/trunk/stompconnect</url>
+  </scm>
 
   <dependencies>
     <dependency>
@@ -36,9 +55,61 @@
     </dependency>
   </dependencies>
 
+  <repositories>
+    <!-- keep the central repo so that it is first tried -->
+    <repository>
+      <id>central</id>
+      <url>http://ibiblio.org/maven2/</url>
+    </repository>
+
+    <!--  ActiveMQ 4.0 -->
+    <repository>
+      <id>apache-snapshots</id>
+      <name>Apache Snapshots</name>
+      <url>http://people.apache.org/repo/m2-snapshot-repository</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>codehaus.org</id>
+      <name>Stomp Central Repository</name>
+      <url>dav:https://dav.codehaus.org/repository/stomp/</url>
+    </repository>
+    <snapshotRepository>
+      <id>codehaus.org</id>
+      <name>Stomp Central Development Repository</name>
+      <url>dav:https://dav.codehaus.org/snapshots.repository/stomp/</url>
+    </snapshotRepository>
+    <site>
+      <id>codehaus.org</id>
+      <url>dav:https://dav.codehaus.org/stomp/</url>
+    </site>
+  </distributionManagement>
 
   <build>
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-webdav</artifactId>
+        <version>1.0-beta-1</version>
+      </extension>
+    </extensions>
+
     <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <tagBase>https://svn.codehaus.org/stomp/tags/</tagBase>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
