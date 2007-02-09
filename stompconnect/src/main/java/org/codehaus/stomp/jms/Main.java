@@ -17,16 +17,13 @@
  */
 package org.codehaus.stomp.jms;
 
-import org.codehaus.stomp.jms.StompConnect;
-import org.apache.activemq.ActiveMQConnectionFactory;
-
 /**
- * A Stomp Broker using StompConnect and the current JNDI provider to resolve the current JMS Provider
+ * A Stomp Broker using StompConnect and the current JNDI provider found on the classpath (usually via a jndi.properties file)
+ * to resolve the current JMS Provider (the ConnectionFactory).
  *
  * @version $Revision$
  */
 public class Main {
-
     public static void main(String[] args) {
         try {
             StompConnect connect = new StompConnect();

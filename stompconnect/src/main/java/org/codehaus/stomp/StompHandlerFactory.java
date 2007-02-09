@@ -23,9 +23,8 @@ package org.codehaus.stomp;
  * @version $Revision$
  */
 public interface StompHandlerFactory {
-
     /**
      * Creates a STOMP input handler from the given output channel
      */
-    public StompHandler createStompHandler(StompHandler outputHandler);
+    public StompHandler createStompHandler(StompHandler outputHandler) throws Exception;
 }

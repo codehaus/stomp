@@ -108,7 +108,6 @@ public class TcpTransportServer extends ServiceSupport implements Runnable {
         runner.join();
     }
 
-
     // Properties
     //-------------------------------------------------------------------------
     public boolean isDaemon() {
@@ -232,8 +231,7 @@ public class TcpTransportServer extends ServiceSupport implements Runnable {
         }
     }
 
-
-    protected void connectHandlers(TcpTransport transport) {
+    protected void connectHandlers(TcpTransport transport) throws Exception {
         StompHandler inputHandler = stompHandlerFactory.createStompHandler(transport);
         transport.setInputHandler(inputHandler);
     }
