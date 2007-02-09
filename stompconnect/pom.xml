@@ -6,7 +6,7 @@
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
 
-  <name>stompconnect</name>
+  <name>StompConnect</name>
   <description>
     StompConnect allows any Message Orientated Middleware (MOM)
     products to be exposed as STOMP brokers so that any
@@ -21,6 +21,11 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <organization>
+    <name>LogicBlaze, Inc.</name>
+    <url>http://www.logicblaze.com/</url>
+  </organization>
 
   <scm>
     <connection>scm:svn:http://svn.codehaus.org/stomp/trunk/stompconnect</connection>
