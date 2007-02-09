@@ -24,7 +24,8 @@
 
   <scm>
     <connection>scm:svn:http://svn.codehaus.org/stomp/trunk/stompconnect</connection>
-    <developerConnection>scm:svn:https://${maven.username}@svn.codehaus.org/stomp/trunk/stompconnect</developerConnection>
+    <developerConnection>scm:svn:https://${maven.username}@svn.codehaus.org/stomp/trunk/stompconnect
+    </developerConnection>
     <url>http://svn.codehaus.org/stomp/trunk/stompconnect</url>
   </scm>
 
@@ -89,9 +90,18 @@
     </snapshotRepository>
     <site>
       <id>codehaus.org</id>
-      <url>dav:https://dav.codehaus.org/stomp/</url>
+      <url>dav:https://dav.codehaus.org/stomp/maven/</url>
     </site>
   </distributionManagement>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
 
   <build>
     <extensions>
@@ -132,7 +142,7 @@
             </goals>
             <configuration>
               <descriptors>
-                 <descriptor>src/main/descriptors/unix-bin.xml</descriptor>
+                <descriptor>src/main/descriptors/unix-bin.xml</descriptor>
               </descriptors>
               <finalName>${pom.artifactId}-${pom.version}</finalName>
               <appendAssemblyId>false</appendAssemblyId>
@@ -146,7 +156,7 @@
             </goals>
             <configuration>
               <descriptors>
-                 <descriptor>src/main/descriptors/windows-bin.xml</descriptor>
+                <descriptor>src/main/descriptors/windows-bin.xml</descriptor>
               </descriptors>
               <finalName>${pom.artifactId}-${pom.version}</finalName>
               <appendAssemblyId>false</appendAssemblyId>
@@ -160,7 +170,7 @@
             </goals>
             <configuration>
               <descriptors>
-                 <descriptor>src/main/descriptors/unix-src.xml</descriptor>
+                <descriptor>src/main/descriptors/unix-src.xml</descriptor>
               </descriptors>
             </configuration>
           </execution>
@@ -172,13 +182,14 @@
             </goals>
             <configuration>
               <descriptors>
-                 <descriptor>src/main/descriptors/windows-src.xml</descriptor>
+                <descriptor>src/main/descriptors/windows-src.xml</descriptor>
               </descriptors>
             </configuration>
           </execution>
         </executions>
       </plugin>
     </plugins>
+
   </build>
 
 </project>
