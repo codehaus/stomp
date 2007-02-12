@@ -220,6 +220,7 @@ public class ProtocolConverter implements StompHandler {
         }
 
         session.sendToJms(command);
+        sendResponse(command);
     }
 
     protected void onStompBegin(StompFrame command) throws Exception {
