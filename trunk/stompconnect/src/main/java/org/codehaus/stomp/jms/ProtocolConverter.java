@@ -397,8 +397,8 @@ public class ProtocolConverter implements StompHandler {
         transactedSessions.put(stompTx, session);
     }
 
-    protected StompSession createSession(int autoAcknowledge) throws JMSException {
-        Session session = connection.createSession(false, autoAcknowledge);
+    protected StompSession createSession(int ackMode) throws JMSException {
+        Session session = connection.createSession(false, ackMode);
         return new StompSession(this, session);
     }
 
