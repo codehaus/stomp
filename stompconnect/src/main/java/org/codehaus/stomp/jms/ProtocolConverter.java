@@ -36,6 +36,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Collection;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -51,7 +53,7 @@ public class ProtocolConverter implements StompHandler {
     private Connection connection;
     private StompSession defaultSession;
     private StompSession clientAckSession;
-    private final Map transactedSessions = new ConcurrentHashMap();
+    private final Map<String,StompSession> transactedSessions = new ConcurrentHashMap<String,StompSession>();
     private final Map subscriptions = new ConcurrentHashMap();
     private final Map messages = new ConcurrentHashMap();
 
@@ -69,17 +71,40 @@ public class ProtocolConverter implements StompHandler {
     }
 
     public void close() throws JMSException {
-        // TODO we really should close each individual Stomp session first before closing the connection
-        // in case someone has a duff JMS provider that can't handle the truth
-
         try {
+            // lets close all the sessions first
+            JMSException firstException = null;
+            Collection<StompSession> sessions = new ArrayList<StompSession>(transactedSessions.values());
+            if (defaultSession != null) {
+                sessions.add(defaultSession);
+            }
+            if (clientAckSession != null) {
+                sessions.add(clientAckSession);
+            }
+            for (StompSession session : sessions) {
+                try {
+                    session.close();
+                }
+                catch (JMSException e) {
+                    if (firstException == null) {                                           
+                        firstException = e;
+                    }
+                }
+            }
+
+            // now the connetion
             if (connection != null) {
                 connection.close();
+            }
+
+            if (firstException != null) {
+                throw firstException;
             }
         }
         finally {
             connection = null;
             defaultSession = null;
+            clientAckSession = null;
             transactedSessions.clear();
             subscriptions.clear();
             messages.clear();
@@ -91,6 +116,10 @@ public class ProtocolConverter implements StompHandler {
      */
     public void onStompFrame(StompFrame command) throws Exception {
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Received command: " + command.getAction() + " headers: " + command.getHeaders());
+            }
+            
             if (command.getClass() == StompFrameError.class) {
                 throw ((StompFrameError) command).getException();
             }
@@ -190,8 +219,14 @@ public class ProtocolConverter implements StompHandler {
 
         responseHeaders.put(Stomp.Headers.Connected.SESSION, connection.getClientID());
         String requestId = (String) headers.get(Stomp.Headers.Connect.REQUEST_ID);
+        if (requestId == null) {
+            // TODO legacy
+            requestId = (String) headers.get(Stomp.Headers.RECEIPT_REQUESTED);
+        }
         if (requestId != null) {
+            // TODO legacy
             responseHeaders.put(Stomp.Headers.Connected.RESPONSE_ID, requestId);
+            responseHeaders.put(Stomp.Headers.Response.RECEIPT_ID, requestId);
         }
 
         StompFrame sc = new StompFrame();
@@ -420,6 +455,9 @@ public class ProtocolConverter implements StompHandler {
     }
 
     protected void sendToStomp(StompFrame frame) throws Exception {
+        if (log.isDebugEnabled()) {
+            log.debug("Sending Frame: " + frame.getAction() + " headers: " + frame.getHeaders());
+        }
         outputHandler.onStompFrame(frame);
     }
 
