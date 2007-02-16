@@ -432,6 +432,100 @@ public class StompTest extends TestCase {
         Assert.assertTrue(message.getJMSRedelivered());
     }
 
+    public void testSubscribeWithClientAckThenConsumingAgainWithAutoAck() throws Exception {
+        assertSubscribeWithClientAckThenConsumeWithAutoAck(false);
+    }
+
+    public void testSubscribeWithClientAckThenConsumingAgainWithAutoAckWithExplicitDisconnect() throws Exception {
+        assertSubscribeWithClientAckThenConsumeWithAutoAck(true);
+    }
+
+    protected void assertSubscribeWithClientAckThenConsumeWithAutoAck(boolean sendDisconnect) throws Exception {
+
+        String frame =
+                "CONNECT\n" +
+                        "login: brianm\n" +
+                        "passcode: wombats\n\n" +
+                        Stomp.NULL;
+        sendFrame(frame);
+
+        frame = receiveFrame(10000);
+        Assert.assertTrue(frame.startsWith("CONNECTED"));
+
+        frame =
+                "SUBSCRIBE\n" +
+                        "destination:/queue/" + getQueueName() + "\n" +
+                        "ack:client\n\n" +
+                        Stomp.NULL;
+
+        sendFrame(frame);
+        sendMessage(getName());
+
+        frame = receiveFrame(10000);
+        Assert.assertTrue(frame.startsWith("MESSAGE"));
+
+        if (sendDisconnect) {
+            frame =
+                    "DISCONNECT\n" +
+                            "\n\n" +
+                            Stomp.NULL;
+            sendFrame(frame);
+        }
+
+        reconnect();
+
+        // message should be received since message was not acknowledged
+        frame =
+                "CONNECT\n" +
+                        "login: brianm\n" +
+                        "passcode: wombats\n\n" +
+                        Stomp.NULL;
+        sendFrame(frame);
+
+        frame = receiveFrame(10000);
+        Assert.assertTrue(frame.startsWith("CONNECTED"));
+
+        frame =
+                "SUBSCRIBE\n" +
+                        "destination:/queue/" + getQueueName() + "\n" +
+                        Stomp.NULL;
+
+        sendFrame(frame);
+
+        frame = receiveFrame(10000);
+        Assert.assertTrue(frame.startsWith("MESSAGE"));
+
+        frame =
+                "DISCONNECT\n" +
+                        "\n\n" +
+                        Stomp.NULL;
+        sendFrame(frame);
+
+        // now lets make sure we don't see the message again
+        reconnect();
+
+        frame =
+                "CONNECT\n" +
+                        "login: brianm\n" +
+                        "passcode: wombats\n\n" +
+                        Stomp.NULL;
+        sendFrame(frame);
+
+        frame = receiveFrame(10000);
+        Assert.assertTrue(frame.startsWith("CONNECTED"));
+
+        frame =
+                "SUBSCRIBE\n" +
+                        "destination:/queue/" + getQueueName() + "\n" +
+                        Stomp.NULL;
+
+        sendFrame(frame);
+        sendMessage(getName());
+
+        frame = receiveFrame(10000);
+        assertNull("Should not have received a message!", frame);
+    }
+
     public void testUnsubscribe() throws Exception {
 
         String frame =
@@ -614,6 +708,12 @@ public class StompTest extends TestCase {
             stompSocket.close();
         }
         stompConnect.stop();
+    }
+
+    protected void reconnect() throws Exception {
+        stompSocket.close();
+        stompSocket = createSocket();
+        inputBuffer = new ByteArrayOutputStream();
     }
 
     protected ConnectionFactory createConnectionFactory() {

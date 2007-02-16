@@ -21,14 +21,7 @@ import org.codehaus.stomp.ProtocolException;
 import org.codehaus.stomp.Stomp;
 import org.codehaus.stomp.StompFrame;
 
-import javax.jms.BytesMessage;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import javax.jms.*;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -45,6 +38,7 @@ public class StompSession {
     private final ProtocolConverter protocolConverter;
     private final Session session;
     private MessageProducer producer;
+    private Map<String, Destination> temporaryDestinations = new HashMap<String, Destination>();
 
     public StompSession(ProtocolConverter protocolConverter, Session session) {
         this.protocolConverter = protocolConverter;
@@ -66,11 +60,15 @@ public class StompSession {
         return producer;
     }
 
-    public void sendToJms(StompFrame command) throws JMSException, ProtocolException {
-        Message message = convertFrame(command);
+    public void close() throws JMSException {
+        session.close();
+    }
 
+    public void sendToJms(StompFrame command) throws JMSException, ProtocolException {
         Map headers = command.getHeaders();
         String destinationName = (String) headers.remove(Stomp.Headers.Send.DESTINATION);
+        Message message = convertFrame(command);
+
         Destination destination = convertDestination(destinationName);
 
         int deliveryMode = getDeliveryMode(headers);
@@ -98,10 +96,54 @@ public class StompSession {
             String topicName = name.substring("/topic/".length(), name.length());
             return session.createTopic(topicName);
         }
+        else if (name.startsWith("/temp-queue/")) {
+            String tempName = name.substring("/temp-queue/".length(), name.length());
+            return temporaryDestination(tempName, session.createTemporaryQueue());
+        }
+        else if (name.startsWith("/temp-topic/")) {
+            String tempName = name.substring("/temp-topic/".length(), name.length());
+            return temporaryDestination(tempName, session.createTemporaryTopic());
+        }
         else {
             throw new ProtocolException("Illegal destination name: [" + name + "] -- StompConnect destinations " +
-                    "must begine with /queue/ or /topic/");
+                    "must begine with one of: /queue/ /topic/ /temp-queue/ /temp-topic/");
         }
+    }
+
+    protected String convertDestination(Destination d) {
+        if (d == null) {
+            return null;
+        }
+        String physicalName = d.toString();
+
+        StringBuffer buffer = new StringBuffer();
+        if (d instanceof Queue) {
+            if (d instanceof TemporaryQueue) {
+                buffer.append("/temp-queue/");
+            }
+            else {
+                buffer.append("/queue/");
+            }
+        }
+        else {
+            if (d instanceof TemporaryTopic) {
+                buffer.append("/temp-topic/");
+            }
+            else {
+                buffer.append("/topic/");
+            }
+        }
+        buffer.append(physicalName);
+        return buffer.toString();
+    }
+
+    protected synchronized Destination temporaryDestination(String tempName, Destination temporaryDestination) {
+        Destination answer = temporaryDestinations.get(tempName);
+        if (answer == null) {
+            temporaryDestinations.put(tempName, temporaryDestination);
+            answer = temporaryDestination;
+        }
+        return answer;
     }
 
     protected int getDeliveryMode(Map headers) throws JMSException {
@@ -237,22 +279,5 @@ public class StompSession {
             command.setContent(data);
         }
         return command;
-    }
-
-    protected String convertDestination(Destination d) {
-        if (d == null) {
-            return null;
-        }
-        String physicalName = d.toString();
-
-        StringBuffer buffer = new StringBuffer();
-        if (d instanceof Queue) {
-            buffer.append("/queue/");
-        }
-        else {
-            buffer.append("/topic/");
-        }
-        buffer.append(physicalName);
-        return buffer.toString();
     }
 }
