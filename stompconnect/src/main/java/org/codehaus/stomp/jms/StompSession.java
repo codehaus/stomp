@@ -27,7 +27,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Queue;
 
 /**
  * Represents a logical session (a parallel unit of work) within a Stomp connection
@@ -110,32 +109,34 @@ public class StompSession {
         }
     }
 
-    protected String convertDestination(Destination d) {
+    protected String convertDestination(Destination d) throws JMSException {
         if (d == null) {
             return null;
         }
-        String physicalName = d.toString();
-
         StringBuffer buffer = new StringBuffer();
-        if (d instanceof Queue) {
-            if (d instanceof TemporaryQueue) {
-                buffer.append("/temp-queue/");
-            }
-            else {
-                buffer.append("/queue/");
-            }
-        }
-        else {
+        if (d instanceof Topic) {
+            Topic topic = (Topic) d;
             if (d instanceof TemporaryTopic) {
                 buffer.append("/temp-topic/");
             }
             else {
                 buffer.append("/topic/");
             }
+            buffer.append(topic.getTopicName());
         }
-        buffer.append(physicalName);
+        else {
+            Queue queue = (Queue) d;
+            if (d instanceof TemporaryQueue) {
+                buffer.append("/temp-queue/");
+            }
+            else {
+                buffer.append("/queue/");
+            }
+            buffer.append(queue.getQueueName());
+        }
         return buffer.toString();
     }
+
 
     protected synchronized Destination temporaryDestination(String tempName, Destination temporaryDestination) {
         Destination answer = temporaryDestinations.get(tempName);
