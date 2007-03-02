@@ -109,6 +109,10 @@ public class TcpTransport extends ServiceSupport implements Runnable, StompHandl
         log.error("Caught: " + e, e);
     }
 
+    public void close() throws Exception {
+        stop();
+    }
+
     /**
      * @return pretty print of 'this'
      */
@@ -367,6 +371,9 @@ public class TcpTransport extends ServiceSupport implements Runnable, StompHandl
     protected void doStop() throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("Stopping transport " + this);
+        }
+        if (inputHandler != null) {
+            inputHandler.close();
         }
 
         // Closing the streams flush the sockets before closing.. if the socket

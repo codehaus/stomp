@@ -26,4 +26,9 @@ public interface StompHandler {
     void onStompFrame(StompFrame frame) throws Exception;
 
     void onException(Exception e);
+
+    /**
+     * Called to close the handler
+     */
+    void close() throws Exception;
 }
