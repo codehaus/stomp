@@ -70,7 +70,7 @@ public class ProtocolConverter implements StompHandler {
         return outputHandler;
     }
 
-    public void close() throws JMSException {
+    public synchronized void close() throws JMSException {
         try {
             // lets close all the sessions first
             JMSException firstException = null;
@@ -83,6 +83,9 @@ public class ProtocolConverter implements StompHandler {
             }
             for (StompSession session : sessions) {
                 try {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Closing session: " + session + " with ack mode: " + session.getSession().getAcknowledgeMode());
+                    }
                     session.close();
                 }
                 catch (JMSException e) {
@@ -117,7 +120,7 @@ public class ProtocolConverter implements StompHandler {
     public void onStompFrame(StompFrame command) throws Exception {
         try {
             if (log.isDebugEnabled()) {
-                log.debug("Received command: " + command.getAction() + " headers: " + command.getHeaders());
+                log.debug(">>>> " + command.getAction() + " headers: " + command.getHeaders());
             }
             
             if (command.getClass() == StompFrameError.class) {
@@ -434,6 +437,9 @@ public class ProtocolConverter implements StompHandler {
 
     protected StompSession createSession(int ackMode) throws JMSException {
         Session session = connection.createSession(false, ackMode);
+        if (log.isDebugEnabled()) {
+            log.debug("Created session with ack mode: " + session.getAcknowledgeMode());
+        }
         return new StompSession(this, session);
     }
 
@@ -456,7 +462,7 @@ public class ProtocolConverter implements StompHandler {
 
     protected void sendToStomp(StompFrame frame) throws Exception {
         if (log.isDebugEnabled()) {
-            log.debug("Sending Frame: " + frame.getAction() + " headers: " + frame.getHeaders());
+            log.debug("<<<< " + frame.getAction() + " headers: " + frame.getHeaders());
         }
         outputHandler.onStompFrame(frame);
     }

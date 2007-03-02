@@ -432,7 +432,7 @@ public class StompTest extends TestCase {
         Assert.assertTrue(message.getJMSRedelivered());
     }
 
-    public void testSubscribeWithClientAckThenConsumingAgainWithAutoAck() throws Exception {
+    public void testSubscribeWithClientAckThenConsumingAgainWithAutoAckWithNoDisconnectFrame() throws Exception {
         assertSubscribeWithClientAckThenConsumeWithAutoAck(false);
     }
 
@@ -464,15 +464,20 @@ public class StompTest extends TestCase {
         frame = receiveFrame(10000);
         Assert.assertTrue(frame.startsWith("MESSAGE"));
 
+        log.info("Reconnecting!");
+        
         if (sendDisconnect) {
             frame =
                     "DISCONNECT\n" +
                             "\n\n" +
                             Stomp.NULL;
             sendFrame(frame);
+            reconnect();
+        }
+        else {
+            reconnect(1000);
         }
 
-        reconnect();
 
         // message should be received since message was not acknowledged
         frame =
@@ -487,7 +492,7 @@ public class StompTest extends TestCase {
 
         frame =
                 "SUBSCRIBE\n" +
-                        "destination:/queue/" + getQueueName() + "\n" +
+                        "destination:/queue/" + getQueueName() + "\n\n" +
                         Stomp.NULL;
 
         sendFrame(frame);
@@ -516,14 +521,15 @@ public class StompTest extends TestCase {
 
         frame =
                 "SUBSCRIBE\n" +
-                        "destination:/queue/" + getQueueName() + "\n" +
+                        "destination:/queue/" + getQueueName() + "\n\n" +
                         Stomp.NULL;
 
         sendFrame(frame);
-        sendMessage(getName());
+        sendMessage("shouldBeNextMessage");
 
         frame = receiveFrame(10000);
-        assertNull("Should not have received a message!", frame);
+        Assert.assertTrue(frame.startsWith("MESSAGE"));
+        Assert.assertTrue(frame.contains("shouldBeNextMessage"));
     }
 
     public void testUnsubscribe() throws Exception {
@@ -711,7 +717,15 @@ public class StompTest extends TestCase {
     }
 
     protected void reconnect() throws Exception {
+        reconnect(0);
+    }
+    protected void reconnect(long sleep) throws Exception {
         stompSocket.close();
+
+        if (sleep > 0) {
+            Thread.sleep(sleep);
+        }
+
         stompSocket = createSocket();
         inputBuffer = new ByteArrayOutputStream();
     }
