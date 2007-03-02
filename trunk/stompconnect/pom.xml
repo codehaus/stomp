@@ -3,7 +3,7 @@
   <groupId>org.codehaus.stomp</groupId>
   <artifactId>stompconnect</artifactId>
   <packaging>jar</packaging>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
 
   <name>StompConnect</name>
   <description>
@@ -27,9 +27,9 @@
   </organization>
 
   <scm>
-    <connection>scm:svn:https://svn.codehaus.org/stomp/tags/stompconnect-1.0</connection>
-    <developerConnection>scm:svn:https://svn.codehaus.org/stomp/tags/stompconnect-1.0</developerConnection>
-    <url>https://svn.codehaus.org/stomp/tags/stompconnect-1.0</url>
+    <connection>scm:svn:http://svn.codehaus.org/stomp/trunk/stompconnect</connection>
+    <developerConnection>scm:svn:https://${maven.username}@svn.codehaus.org/stomp/trunk/stompconnect</developerConnection>
+    <url>http://svn.codehaus.org/stomp/trunk/stompconnect</url>
   </scm>
 
   <dependencies>
