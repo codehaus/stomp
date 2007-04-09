@@ -2,7 +2,8 @@ program StompExample;
 
 uses
   Forms,
-  untMain in 'untMain.pas' {Form1};
+  untMain in 'untMain.pas' {Form1},
+  StompClient in '..\source\StompClient.pas';
 
 {$R *.res}
 
