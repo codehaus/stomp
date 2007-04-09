@@ -33,7 +33,6 @@ type
       Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
       var ErrorCode: Integer);
     procedure btCloseClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure btSendQClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
   private
@@ -57,6 +56,10 @@ end;
 
 procedure TForm1.btOpenClick(Sender: TObject);
 begin
+  self.StompClient.Host:= edHost.Text;
+  self.StompClient.Port:= StrToInt(edPort.Text);
+  self.StompClient.UserName:= edUsername.Text;
+  self.StompClient.PassCode:= edPasscode.Text;  
   Memo.Lines.Add('open stomp client');
   StompClient.Open;
 end;
@@ -104,14 +107,6 @@ begin
 end;
 
 
-
-procedure TForm1.FormCreate(Sender: TObject);
-begin
-  self.StompClient.Host:= edHost.Text;
-  self.StompClient.Port:= StrToInt(edPort.Text);
-  self.StompClient.UserName:= edUsername.Text;
-  self.StompClient.PassCode:= edPasscode.Text;
-end;
 
 procedure TForm1.btSendQClick(Sender: TObject);
 begin
