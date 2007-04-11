@@ -43,7 +43,7 @@ type
     //otherwise, return Value;
     function GetValue(Key: String): String;
     procedure Remove(Key: String);
-    procedure Clear;
+    procedure ClearHeader;
     function output: String;
     function Count: Integer;
     function GetHeader(i: Integer): PItem;
@@ -58,7 +58,7 @@ type
 
   TStompClient = class;
 
-  TStompConnectNotifyEvent = procedure (Client: TStompClient; SessionID: String) of object;
+  TStompConnectNotifyEvent = procedure (Client: TStompClient; Frame: TStompFrame) of object;
   TStompDisconnectNotifyEvent = procedure (Client: TStompClient) of object;
   TStompErrorNotifyEvent = procedure (Client: TStompClient; Msg: String; Content: String) of object;
   TStompReceiptNotifyEvent = procedure (Client: TStompClient; ReceiptID: String) of object;
@@ -75,8 +75,6 @@ type
   private
     { Private declarations }
     FTransport: TClientSocket;
-    FUserName: String;
-    FPassCode: String;
     FConnected: Boolean;
     FOnConnect: TStompConnectNotifyEvent;
     FOnMessage: TStompMessageNotifyEvent;
@@ -85,15 +83,14 @@ type
     FOnDisconnect: TStompDisconnectNotifyEvent;
     FOnTransportError: TSocketErrorEvent;
     FOnReceipt: TStompReceiptNotifyEvent;
+
+    FConnectFrame: TStompFrame;
     //Read message buffer
     FBuf: String;
-    FSessionID: String;
     procedure SetHost(const Value: String);
     procedure SetPort(const Value: Integer);
     function GetHost: String;
     function GetPort: Integer;
-    procedure SetPassCode(const Value: String);
-    procedure SetUserName(const Value: String);
     procedure OnTransportRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure OnTransportConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure OnTransportDisconnect(Sender: TObject; Socket: TCustomWinSocket);
@@ -108,6 +105,8 @@ type
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
+    //clear connect headers and set new.
+    procedure ClearAndSetConnectHeaders(Headers: array of TItem);
     destructor Destroy; override;
     //Open connection and send connect frame
     procedure Open;
@@ -148,11 +147,8 @@ type
     property Host: String read GetHost write SetHost;
     //Stomp server port
     property Port: Integer read GetPort write SetPort;
-    //login username
-    property UserName: String read FUserName write SetUserName;
-    //login passcode
-    property PassCode: String read FPassCode write SetPassCode;
-    //fired after receive CONNECTED frame
+    
+    //fired after receive CONNECTED frame. client should be in charge of free StompFrame.
     property OnConnect: TStompConnectNotifyEvent read FOnConnect write FOnConnect;
     //If socket close operation is active, it is fired after sending DISCONNECT frame
     // and just before the socket is closed.
@@ -163,11 +159,10 @@ type
     property OnTransportError: TSocketErrorEvent read FOnTransportError write FOnTransportError;
     //fired on receiving error frame. Note the difference between this event and OnTransportError.
     property OnError: TStompErrorNotifyEvent read FOnError write FOnError;
-    //fired on receiving message frame.
+    //fired on receiving message frame. client should be in charge of free StompFrame.
     property OnMessage: TStompMessageNotifyEvent read FOnMessage write FOnMessage;
     //fired on receiving receipt frame.
     property OnReceipt: TStompReceiptNotifyEvent read FOnReceipt write FOnReceipt;
-    property SessionID: String read FSessionID;
 
   end;
 
@@ -207,7 +202,7 @@ begin
   FHeader.Add(p);
 end;
 
-procedure TStompFrame.Clear;
+procedure TStompFrame.ClearHeader;
 var
   i: Integer;
   p: PItem;
@@ -234,7 +229,7 @@ end;
 
 destructor TStompFrame.Destroy;
 begin
-  Clear;
+  ClearHeader;
   FHeader.Free;
   inherited;
 end;
@@ -400,25 +395,19 @@ begin
 end;
 
 procedure TStompClient.Connect;
-var
-  frame: TStompFrame;
-  s: String;
+
 begin
-  frame:= TStompFrame.Create;
-  try
-    frame.Command:= 'CONNECT';
-    frame.Add('login', UserName);
-    frame.Add('passcode', PassCode);
-    s:= frame.output;
-    FTransport.Socket.SendText(s);
-  finally
-    frame.Free;
-  end;
+  FTransport.Socket.SendText(FConnectFrame.output);
+
 end;
 
 constructor TStompClient.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FConnectFrame:= TStompFrame.Create;
+  FConnectFrame.FCommand:= 'CONNECT';
+  FConnectFrame.Add('login', '');
+  FConnectFrame.Add('passcode', '');
   FTransport:= TClientSocket.Create(Self);
   FTransport.OnConnect:= OnTransportConnect;
   FTransport.OnDisconnect:= OnTransportDisconnect;
@@ -426,15 +415,13 @@ begin
   FTransport.OnError:= OnTransportError;
   FConnected:= false;
   FBuf:= '';
-  self.FUserName:= '';
-  self.FPassCode:= '';
-  self.FSessionID:= '';
   self.FTransport.Port:= 61613;
 
 end;
 
 destructor TStompClient.Destroy;
 begin
+  self.FConnectFrame.Free;
   inherited;
 end;
 
@@ -487,10 +474,12 @@ begin
       break;
     if (frame.Command = 'CONNECTED') then
     begin
-      self.FSessionID:= frame.GetValue('session');
       FConnected:= true;
       if Assigned(FOnConnect) then
-         FOnConnect(Self, FSessionID);
+      begin
+        freeFrame:= false;
+        FOnConnect(Self, Frame);
+      end;
     end
     else if (frame.Command = 'ERROR') then
     begin
@@ -571,25 +560,12 @@ begin
   FTransport.Host:= Value;
 end;
 
-procedure TStompClient.SetPassCode(const Value: String);
-begin
-  if not (csLoading in ComponentState) and FConnected then
-     raise EStomp.Create('cannot change Passcode when running.');
-  FPassCode := Value;
-end;
+
 
 procedure TStompClient.SetPort(const Value: Integer);
 begin
   FTransport.Port:= Value;
 end;
-
-procedure TStompClient.SetUserName(const Value: String);
-begin
-  if not (csLoading in ComponentState) and FConnected then
-     raise EStomp.Create('cannot change Username when running.');
-  FUserName := Value;
-end;
-
 
 
 procedure TStompClient.OnTransportDisconnect(Sender: TObject;
@@ -794,6 +770,17 @@ procedure TStompClient.SendText(Dest, Body: String;
   Headers: array of TItem; ReceiptID: String);
 begin
   Send(Dest, Body, Headers, true, ReceiptID);
+end;
+
+procedure TStompClient.ClearAndSetConnectHeaders(Headers: array of TItem);
+var
+  i: integer;
+begin
+  FConnectFrame.ClearHeader;
+  for i:= low(Headers) to high(Headers) do
+  begin
+    FConnectFrame.Add(Headers[i].Key, Headers[i].Value);
+  end;
 end;
 
 end.
