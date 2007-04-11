@@ -24,7 +24,6 @@ type
     btSendQ: TButton;
     Button1: TButton;
     procedure btOpenClick(Sender: TObject);
-    procedure StompClientConnect(Client: TStompClient; SessionID: String);
     procedure StompClientDisconnect(Client: TStompClient);
     procedure StompClientError(Client: TStompClient; Msg, Content: String);
     procedure StompClientMessage(Client: TStompClient; Frame: TStompFrame);
@@ -35,6 +34,7 @@ type
     procedure btCloseClick(Sender: TObject);
     procedure btSendQClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure StompClientConnect(Client: TStompClient; Frame: TStompFrame);
   private
     { Private declarations }
   public
@@ -54,25 +54,29 @@ begin
   StompClient.Close;
 end;
 
+var
+  CONN_HEADERS: array of TItem = nil;
+
 procedure TForm1.btOpenClick(Sender: TObject);
 begin
+
   self.StompClient.Host:= edHost.Text;
   self.StompClient.Port:= StrToInt(edPort.Text);
-  self.StompClient.UserName:= edUsername.Text;
-  self.StompClient.PassCode:= edPasscode.Text;  
+
+  CONN_HEADERS:= nil;
+  setLength(CONN_HEADERS, 2);
+  CONN_HEADERS[0].Key:= 'login';
+  CONN_HEADERS[0].Value:= 'me';
+  CONN_HEADERS[1].Key:= 'passcode';
+  CONN_HEADERS[1].Value:= 'pass';
+  //set various other headers.
+  StompClient.ClearAndSetConnectHeaders(CONN_HEADERS);
+
   Memo.Lines.Add('open stomp client');
   StompClient.Open;
 end;
 
-procedure TForm1.StompClientConnect(Client: TStompClient;
-  SessionID: String);
-begin
-  Memo.Lines.Add('connected, SessionID:'+SessionID);
-  Memo.Lines.Add('subscribe queue A');
-  StompClient.Subscribe('/queue/A', AUTO);
-  Memo.Lines.Add('subscribe topic B');
-  StompClient.Subscribe('/topic/B', AUTO);
-end;
+
 
 procedure TForm1.StompClientDisconnect(Client: TStompClient);
 begin
@@ -118,6 +122,17 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 begin
   self.StompClient.SendText('/topic/B', 'hello B');
+end;
+
+procedure TForm1.StompClientConnect(Client: TStompClient;
+  Frame: TStompFrame);
+begin
+  Memo.Lines.Add('connected, SessionID:'+Frame.GetValue('session'));
+  Memo.Lines.Add('subscribe queue A');
+  StompClient.Subscribe('/queue/A', AUTO);
+  Memo.Lines.Add('subscribe topic B');
+  StompClient.Subscribe('/topic/B', AUTO);
+  Frame.Free;
 end;
 
 end.
