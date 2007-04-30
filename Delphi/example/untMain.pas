@@ -23,6 +23,10 @@ type
     btClose: TButton;
     btSendQ: TButton;
     Button1: TButton;
+    edQueueA: TEdit;
+    Label5: TLabel;
+    edTopicB: TEdit;
+    Label6: TLabel;
     procedure btOpenClick(Sender: TObject);
     procedure StompClientDisconnect(Client: TStompClient);
     procedure StompClientError(Client: TStompClient; Msg, Content: String);
@@ -129,9 +133,9 @@ procedure TForm1.StompClientConnect(Client: TStompClient;
 begin
   Memo.Lines.Add('connected, SessionID:'+Frame.GetValue('session'));
   Memo.Lines.Add('subscribe queue A');
-  StompClient.Subscribe('/queue/A', AUTO);
+  StompClient.Subscribe('/queue/'+edQueueA.Text, AUTO);
   Memo.Lines.Add('subscribe topic B');
-  StompClient.Subscribe('/topic/B', AUTO);
+  StompClient.Subscribe('/topic/'+edTopicB.Text, AUTO);
   Frame.Free;
 end;
 

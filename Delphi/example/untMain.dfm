@@ -58,6 +58,20 @@ object Form1: TForm1
       Height = 13
       Caption = 'Passcode'
     end
+    object Label5: TLabel
+      Left = 64
+      Top = 176
+      Width = 42
+      Height = 13
+      Caption = 'Queue A'
+    end
+    object Label6: TLabel
+      Left = 208
+      Top = 176
+      Width = 37
+      Height = 13
+      Caption = 'Topic B'
+    end
     object edHost: TEdit
       Left = 64
       Top = 80
@@ -124,6 +138,22 @@ object Form1: TForm1
       TabOrder = 7
       OnClick = Button1Click
     end
+    object edQueueA: TEdit
+      Left = 64
+      Top = 200
+      Width = 129
+      Height = 21
+      TabOrder = 8
+      Text = 'A'
+    end
+  end
+  object edTopicB: TEdit
+    Left = 208
+    Top = 200
+    Width = 129
+    Height = 21
+    TabOrder = 2
+    Text = 'B'
   end
   object StompClient: TStompClient
     Port = 61613
