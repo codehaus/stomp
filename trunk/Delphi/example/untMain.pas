@@ -41,6 +41,8 @@ type
     procedure StompClientConnect(Client: TStompClient; Frame: TStompFrame);
   private
     { Private declarations }
+    FQueueA: string;
+    FTopicB: string;
   public
     { Public declarations }
   end;
@@ -118,14 +120,14 @@ end;
 
 procedure TForm1.btSendQClick(Sender: TObject);
 begin
-  self.StompClient.SendText('/queue/A', 'hello A');
+  self.StompClient.SendText(FQueueA, 'hello A');
 end;
 
 
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  self.StompClient.SendText('/topic/B', 'hello B');
+  self.StompClient.SendText(FTopicB, 'hello B');
 end;
 
 procedure TForm1.StompClientConnect(Client: TStompClient;
@@ -133,9 +135,11 @@ procedure TForm1.StompClientConnect(Client: TStompClient;
 begin
   Memo.Lines.Add('connected, SessionID:'+Frame.GetValue('session'));
   Memo.Lines.Add('subscribe queue A');
-  StompClient.Subscribe('/queue/'+edQueueA.Text, AUTO);
+  self.FQueueA:= '/queue/'+edQueueA.Text;
+  self.FTopicB:= '/topic/'+edTopicB.Text;
+  StompClient.Subscribe(FQueueA, AUTO);
   Memo.Lines.Add('subscribe topic B');
-  StompClient.Subscribe('/topic/'+edTopicB.Text, AUTO);
+  StompClient.Subscribe(FTopicB, AUTO);
   Frame.Free;
 end;
 
