@@ -1,13 +1,13 @@
 unit StompClient;
 
 // Author: Dingwen Yuan pdvyuan@hotmail.com
-// Version: 0.1
+// Version: 0.2
 
 
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, ScktComp;
+  Windows, Messages, SysUtils, Classes, ScktComp, ExtCtrls;
 
 const
   LINE_SEP: char = #10;
@@ -49,6 +49,15 @@ type
     function GetHeader(i: Integer): PItem;
   end;
 
+  TAddress = record
+    Host: String;
+    Port: Integer;
+    UserName: String;
+    PassCode: String;
+  end;
+
+  TAddresses = array of TAddress;
+
   //process message in the buffer
   //return TFrame, when there is no complete frame in the buffer, return nil.
   //buf contains what left after processing.
@@ -62,6 +71,7 @@ type
   TStompDisconnectNotifyEvent = procedure (Client: TStompClient) of object;
   TStompErrorNotifyEvent = procedure (Client: TStompClient; Msg: String; Content: String) of object;
   TStompReceiptNotifyEvent = procedure (Client: TStompClient; ReceiptID: String) of object;
+  TSetOtherConnectHeaders = procedure (Host: String; Port: Integer; var ConnectFrame: TStompFrame) of object;
 
   //Frame should be removed by client
   TStompMessageNotifyEvent = procedure (Client: TStompClient; Frame: TStompFrame) of object;
@@ -74,6 +84,10 @@ type
   TStompClient = class(TComponent)
   private
     { Private declarations }
+    FServerAddrs: TAddresses;
+    FNextConnect: Integer;
+    FTestConnection: boolean;
+    FServerAddr: String;
     FTransport: TClientSocket;
     FConnected: Boolean;
     FOnConnect: TStompConnectNotifyEvent;
@@ -81,36 +95,50 @@ type
     //error message
     FOnError: TStompErrorNotifyEvent;
     FOnDisconnect: TStompDisconnectNotifyEvent;
-    FOnTransportError: TSocketErrorEvent;
     FOnReceipt: TStompReceiptNotifyEvent;
-
+    FOnSetOtherConnectHeaders: TSetOtherConnectHeaders;
+    FTimer: TTimer;
     FConnectFrame: TStompFrame;
     //Read message buffer
     FBuf: String;
-    procedure SetHost(const Value: String);
-    procedure SetPort(const Value: Integer);
-    function GetHost: String;
-    function GetPort: Integer;
     procedure OnTransportRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure OnTransportConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure OnTransportDisconnect(Sender: TObject; Socket: TCustomWinSocket);
+    procedure OnTransportError(Sender: TObject; Socket: TCustomWinSocket;
+      ErrorEvent: TErrorEvent; var ErrorCode: Integer);
+    procedure OnTimer(Sender: TObject);
     procedure Connect;
     procedure Disconnect;
     procedure Transmit(Frame: TStompFrame); overload;
     procedure Transmit(Frame: TStompFrame; Headers: array of TItem); overload;
     procedure Send(Dest: String; Body: String; IsText: Boolean; ReceiptID: String); overload;
     procedure Send(Dest: String; Body: String; Headers: array of TItem; IsText: Boolean; ReceiptID: String); overload;
+    function GetServerAddr: String;
+    procedure SetServerAddr(const Value: String);
+
+    procedure SplitAddrs(Addr: String);
+    function GetTestConnection: boolean;
+    procedure SetTestConnection(const Value: boolean);
+    function GetTestConnectionInterval: Integer;
+    procedure SetTestConnectionInterval(const Value: Integer);
+
+    procedure DoClose;
+    procedure DoOpen;
   protected
     { Protected declarations }
   public
     { Public declarations }
     constructor Create(AOwner: TComponent); override;
-    //clear connect headers and set new.
-    procedure ClearAndSetConnectHeaders(Headers: array of TItem);
+    {
+    //clear all the items of CONNECT HEADERS except that of login and passcode, and set new.
+    //login and passcode should be set in the ServerAddr property.
+    procedure ClearAndSetSuppConnectHeaders(Headers: array of TItem);
+    }
     destructor Destroy; override;
-    //Open connection and send connect frame
+    //Open connection and send connect frame if connected.
+    //connecting will be tested if TestConnection is true and connection will be tried in circular form .
     procedure Open;
-    //Send disconnect frame and close connection
+    //disable connection timer, then send disconnect frame if possible and close connection
     procedure Close;
 
     //Send send frame
@@ -141,29 +169,31 @@ type
 
     property Connected: Boolean read FConnected;
     property Transport: TClientSocket read FTransport write FTransport;
+    function GetServerAddrs: TAddresses;
   published
     { Published declarations }
-    //Stomp server host
-    property Host: String read GetHost write SetHost;
-    //Stomp server port
-    property Port: Integer read GetPort write SetPort;
-    
+
+    //Stomp Server Address: ServerAddr should be in the form of host:port or host:port:user:passcode
+    property ServerAddr: String read GetServerAddr write SetServerAddr;
     //fired after receive CONNECTED frame. client should be in charge of free StompFrame.
     property OnConnect: TStompConnectNotifyEvent read FOnConnect write FOnConnect;
     //If socket close operation is active, it is fired after sending DISCONNECT frame
     // and just before the socket is closed.
     //If socket close operation is passive, it is fired just before the socket is closed.
     property OnDisconnect: TStompDisconnectNotifyEvent read FOnDisconnect write FOnDisconnect;
-    //fired when socket error occurs. Normally the event handler should set ErrorCode to 0,
-    //in order to clear the error.
-    property OnTransportError: TSocketErrorEvent read FOnTransportError write FOnTransportError;
     //fired on receiving error frame. Note the difference between this event and OnTransportError.
     property OnError: TStompErrorNotifyEvent read FOnError write FOnError;
     //fired on receiving message frame. client should be in charge of free StompFrame.
     property OnMessage: TStompMessageNotifyEvent read FOnMessage write FOnMessage;
     //fired on receiving receipt frame.
     property OnReceipt: TStompReceiptNotifyEvent read FOnReceipt write FOnReceipt;
-
+    //Set headers other than login and passcode for CONNECT frame.
+    property OnSetOtherConnectHeaders: TSetOtherConnectHeaders read FOnSetOtherConnectHeaders write FOnSetOtherConnectHeaders;
+    //connection test set. default true; TestConnection should not be set between open and close,
+    //because it will have no effect.
+    property TestConnection: boolean read GetTestConnection write SetTestConnection;
+    //connection test interval in ms. default 1000;
+    property TestInterval: Integer read GetTestConnectionInterval write SetTestConnectionInterval;
   end;
 
 
@@ -389,16 +419,13 @@ end;
 
 procedure TStompClient.Close;
 begin
-  if self.FTransport.Active then
-    Self.Disconnect;
-  self.FTransport.Close;
+  self.FTimer.Enabled:= false;
+  DoClose;
 end;
 
 procedure TStompClient.Connect;
-
 begin
   FTransport.Socket.SendText(FConnectFrame.output);
-
 end;
 
 constructor TStompClient.Create(AOwner: TComponent);
@@ -410,13 +437,17 @@ begin
   FConnectFrame.Add('passcode', '');
   FTransport:= TClientSocket.Create(Self);
   FTransport.OnConnect:= OnTransportConnect;
+  FTransport.OnError:= OnTransportError;
   FTransport.OnDisconnect:= OnTransportDisconnect;
   FTransport.OnRead:= OnTransportRead;
-  FTransport.OnError:= OnTransportError;
   FConnected:= false;
+  FTimer:= TTimer.Create(self);
+  FTimer.OnTimer:= OnTimer;
+  FTimer.Enabled:= false;
+  TestConnection:= true;
+  TestInterval:= 1000;
   FBuf:= '';
-  self.FTransport.Port:= 61613;
-
+  self.ServerAddr:= '127.0.0.1:61613';
 end;
 
 destructor TStompClient.Destroy;
@@ -441,19 +472,23 @@ begin
 end;
 
 
-function TStompClient.GetHost: String;
-begin
-  result:= FTransport.Host;
-end;
-
-function TStompClient.GetPort: Integer;
-begin
-  result:= FTransport.Port;
-end;
-
 procedure TStompClient.OnTransportConnect(Sender: TObject;
   Socket: TCustomWinSocket);
+var
+  index: Integer;
+  Host: String;
+  Port: Integer;
 begin
+  index:= FNextConnect-1;
+  if (index < 0) then
+    index:= Length(FServerAddrs)+index;
+  Host:= FServerAddrs[index].Host;
+  Port:= FServerAddrs[index].Port;
+  FConnectFrame.ClearHeader;
+  FConnectFrame.Add('login', FServerAddrs[index].UserName);
+  FConnectFrame.Add('passcode', FServerAddrs[index].PassCode);
+  if Assigned(FOnSetOtherConnectHeaders) then
+    FOnSetOtherConnectHeaders(Host, Port, FConnectFrame);
   Connect;
 end;
 
@@ -549,22 +584,18 @@ begin
 end;
 
 
-procedure TStompClient.Open;
+procedure TStompClient.DoOpen;
+var
+  Host: String;
+  Port: Integer;
 begin
+  Host:= FServerAddrs[FNextConnect].Host;
+  Port:= FServerAddrs[FNextConnect].Port;
+  FTransport.Host:= Host;
+  FTransport.Port:= Port;
+  Inc(FNextConnect);
+  FNextConnect:= FNextConnect mod Length(FServerAddrs);
   FTransport.Open;
-end;
-
-
-procedure TStompClient.SetHost(const Value: String);
-begin
-  FTransport.Host:= Value;
-end;
-
-
-
-procedure TStompClient.SetPort(const Value: Integer);
-begin
-  FTransport.Port:= Value;
 end;
 
 
@@ -772,15 +803,172 @@ begin
   Send(Dest, Body, Headers, true, ReceiptID);
 end;
 
-procedure TStompClient.ClearAndSetConnectHeaders(Headers: array of TItem);
+{
+procedure TStompClient.ClearAndSetSuppConnectHeaders(Headers: array of TItem);
 var
-  i: integer;
+  login: String;
+  passcode: String;
+  i: Integer;
 begin
+  login:= FConnectFrame.GetValue('login');
+  passcode:= FConnectFrame.GetValue('passcode');
   FConnectFrame.ClearHeader;
+  FConnectFrame.Add('login', login);
+  FConnectFrame.Add('passcode', passcode);
   for i:= low(Headers) to high(Headers) do
   begin
     FConnectFrame.Add(Headers[i].Key, Headers[i].Value);
   end;
+end;
+}
+
+
+function TStompClient.GetServerAddr: String;
+begin
+  result:= Self.FServerAddr;
+end;
+
+procedure TStompClient.SetServerAddr(const Value: String);
+begin
+  SplitAddrs(Value);
+  Self.FServerAddr:= Value;
+end;
+
+procedure TStompClient.SplitAddrs(Addr: String);
+var
+  i, j, k: Integer;
+  sAddr: String;
+  guess, actual: Integer;
+  from: Integer;
+  buf: String;
+begin
+  try
+    if not (Length(Addr) > 0) then
+    begin
+      raise EStomp('invalid address:'+Addr);
+    end
+    else
+    begin
+      if (Addr[Length(Addr)] <> ';') then
+        Addr:= Addr+';';
+    end;
+    guess:= 1;
+    actual:= 0;
+    from:= 1;
+    SetLength(FServerAddrs, guess);
+
+    for i:=1 to Length(Addr) do
+    begin
+      if (Addr[i] = ';') then
+      begin
+        sAddr:= Copy(Addr, from, i-from);
+        from:= i+1;
+        if (actual > guess-1) then
+        begin
+          guess:= guess*2;
+          SetLength(FServerAddrs, guess);
+        end;
+
+        if (sAddr[Length(sAddr)] <> ':') then
+          sAddr:= sAddr+':';
+        FServerAddrs[actual].Host:= '';
+        FServerAddrs[actual].Port:= 61613;
+        FServerAddrs[actual].UserName:= '';
+        FServerAddrs[actual].PassCode:= '';
+        buf:= '';
+        k:= 0;
+        for j:= 1 to Length(sAddr) do
+        begin
+          if (sAddr[j] <> ':') then
+            buf:= buf+sAddr[j]
+          else
+          begin
+            if (k = 0) then
+              FServerAddrs[actual].Host:= buf
+            else if (k = 1) then
+              FServerAddrs[actual].Port:= StrToInt(buf)
+            else if (k = 2) then
+              FServerAddrs[actual].UserName:= buf
+            else if (k = 3) then
+              FServerAddrs[actual].PassCode:= buf
+            else
+              raise EStomp.Create('invalid address:'+Addr);
+            inc(k);
+            buf:= '';
+          end;
+        end;
+
+        if (FServerAddrs[actual].Host = '') then
+          raise EStomp.Create('invalid address:'+Addr);
+
+        Inc(actual);
+      end;
+    end;
+    SetLength(FServerAddrs, actual);
+    FNextConnect:= 0;
+  except
+    on e: Exception do
+    begin
+      FServerAddrs:= nil;
+      raise EStomp.Create(e.Message);
+    end;
+  end;
+end;
+
+procedure TStompClient.OnTransportError(Sender: TObject; Socket: TCustomWinSocket;
+  ErrorEvent: TErrorEvent; var ErrorCode: Integer);
+begin
+  try
+    self.FTransport.Close;
+    ErrorCode:= 0;
+  except
+  end;
+end;
+
+function TStompClient.GetTestConnection: boolean;
+begin
+  result:= FTestConnection;
+end;
+
+procedure TStompClient.SetTestConnection(const Value: boolean);
+begin
+  FTestConnection:= Value;
+end;
+
+function TStompClient.GetTestConnectionInterval: Integer;
+begin
+  result:= FTimer.Interval;
+end;
+
+procedure TStompClient.SetTestConnectionInterval(const Value: Integer);
+begin
+  FTimer.Interval:= Value;
+end;
+
+procedure TStompClient.OnTimer(Sender: TObject);
+begin
+  if not self.FTransport.Active then
+  begin
+    self.DoOpen;
+  end;
+end;
+
+procedure TStompClient.DoClose;
+begin
+  if self.FTransport.Active then
+    Self.Disconnect;
+  self.FTransport.Close;
+end;
+
+procedure TStompClient.Open;
+begin
+  self.FTimer.Enabled:= self.FTestConnection;
+  DoOpen;
+end;
+
+function TStompClient.GetServerAddrs: TAddresses;
+begin
+  result:= FServerAddrs;
 end;
 
 end.

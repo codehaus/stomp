@@ -7,3 +7,7 @@ You may contact its author at pdvyuan@hotmail.com
 Have fun!
 
 Dingwen Yuan
+
+v0.1 basic stomp client
+v0.2 stomp client that support failover in round robin mode between multiple brokers.
+		 to disable it, set "TestConnection" property to false before "open" operation.

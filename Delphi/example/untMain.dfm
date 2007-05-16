@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 114
   Width = 696
   Height = 480
-  Caption = 'Form1'
+  Caption = 'i'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -35,21 +35,14 @@ object Form1: TForm1
       Top = 56
       Width = 22
       Height = 13
-      Caption = 'Host'
+      Caption = 'Addr'
     end
     object Label4: TLabel
-      Left = 208
-      Top = 56
+      Left = 64
+      Top = 112
       Width = 48
       Height = 13
       Caption = 'Username'
-    end
-    object Label2: TLabel
-      Left = 64
-      Top = 112
-      Width = 19
-      Height = 13
-      Caption = 'Port'
     end
     object Label3: TLabel
       Left = 208
@@ -75,32 +68,24 @@ object Form1: TForm1
     object edHost: TEdit
       Left = 64
       Top = 80
-      Width = 129
+      Width = 241
       Height = 21
       TabOrder = 0
-      Text = '127.0.0.1'
+      Text = '127.0.0.1:61613;128.64.7.111:61613'
     end
     object edUsername: TEdit
-      Left = 208
-      Top = 80
-      Width = 129
-      Height = 21
-      TabOrder = 1
-    end
-    object edPort: TEdit
       Left = 64
       Top = 136
       Width = 129
       Height = 21
-      TabOrder = 2
-      Text = '61613'
+      TabOrder = 1
     end
     object edPasscode: TEdit
       Left = 208
       Top = 136
       Width = 129
       Height = 21
-      TabOrder = 3
+      TabOrder = 2
     end
     object btOpen: TButton
       Left = 48
@@ -108,7 +93,7 @@ object Form1: TForm1
       Width = 129
       Height = 25
       Caption = 'Open connection'
-      TabOrder = 4
+      TabOrder = 3
       OnClick = btOpenClick
     end
     object btClose: TButton
@@ -117,7 +102,7 @@ object Form1: TForm1
       Width = 129
       Height = 25
       Caption = 'Close connection'
-      TabOrder = 5
+      TabOrder = 4
       OnClick = btCloseClick
     end
     object btSendQ: TButton
@@ -126,7 +111,7 @@ object Form1: TForm1
       Width = 121
       Height = 25
       Caption = 'send hello to queue A'
-      TabOrder = 6
+      TabOrder = 5
       OnClick = btSendQClick
     end
     object Button1: TButton
@@ -135,7 +120,7 @@ object Form1: TForm1
       Width = 121
       Height = 25
       Caption = 'send hello to topic B'
-      TabOrder = 7
+      TabOrder = 6
       OnClick = Button1Click
     end
     object edQueueA: TEdit
@@ -143,7 +128,7 @@ object Form1: TForm1
       Top = 200
       Width = 129
       Height = 21
-      TabOrder = 8
+      TabOrder = 7
       Text = 'A'
     end
   end
@@ -156,13 +141,15 @@ object Form1: TForm1
     Text = 'B'
   end
   object StompClient: TStompClient
-    Port = 61613
+    ServerAddr = '127.0.0.1:61613'
     OnConnect = StompClientConnect
     OnDisconnect = StompClientDisconnect
-    OnTransportError = StompClientTransportError
     OnError = StompClientError
     OnMessage = StompClientMessage
     OnReceipt = StompClientReceipt
+    OnSetOtherConnectHeaders = StompClientSetOtherConnectHeaders
+    TestConnection = True
+    TestInterval = 1000
     Left = 24
     Top = 96
   end

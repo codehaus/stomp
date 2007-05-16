@@ -14,8 +14,6 @@ type
     edHost: TEdit;
     Label4: TLabel;
     edUsername: TEdit;
-    edPort: TEdit;
-    Label2: TLabel;
     Label3: TLabel;
     edPasscode: TEdit;
     btOpen: TButton;
@@ -39,6 +37,8 @@ type
     procedure btSendQClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure StompClientConnect(Client: TStompClient; Frame: TStompFrame);
+    procedure StompClientSetOtherConnectHeaders(Host: String;
+      Port: Integer; var ConnectFrame: TStompFrame);
   private
     { Private declarations }
     FQueueA: string;
@@ -66,18 +66,8 @@ var
 procedure TForm1.btOpenClick(Sender: TObject);
 begin
 
-  self.StompClient.Host:= edHost.Text;
-  self.StompClient.Port:= StrToInt(edPort.Text);
-
-  CONN_HEADERS:= nil;
-  setLength(CONN_HEADERS, 2);
-  CONN_HEADERS[0].Key:= 'login';
-  CONN_HEADERS[0].Value:= 'me';
-  CONN_HEADERS[1].Key:= 'passcode';
-  CONN_HEADERS[1].Value:= 'pass';
-  //set various other headers.
-  StompClient.ClearAndSetConnectHeaders(CONN_HEADERS);
-
+  self.StompClient.ServerAddr:= edHost.Text;
+  
   Memo.Lines.Add('open stomp client');
   StompClient.Open;
 end;
@@ -141,6 +131,13 @@ begin
   Memo.Lines.Add('subscribe topic B');
   StompClient.Subscribe(FTopicB, AUTO);
   Frame.Free;
+end;
+
+procedure TForm1.StompClientSetOtherConnectHeaders(Host: String;
+  Port: Integer; var ConnectFrame: TStompFrame);
+begin
+  Memo.Lines.Add('On Set Other Connect Headers for '+Host+':'+IntToStr(Port));
+  ConnectFrame.Add('hello', 'hello');
 end;
 
 end.
