@@ -19,12 +19,16 @@ type
     btOpen: TButton;
     StompClient: TStompClient;
     btClose: TButton;
-    btSendQ: TButton;
-    Button1: TButton;
-    edQueueA: TEdit;
+    btClear: TButton;
+    Label2: TLabel;
+    edDestName: TEdit;
+    btSub: TButton;
+    btUnsub: TButton;
+    edMsg: TEdit;
     Label5: TLabel;
-    edTopicB: TEdit;
     Label6: TLabel;
+    edDestToSend: TEdit;
+    btSend: TButton;
     procedure btOpenClick(Sender: TObject);
     procedure StompClientDisconnect(Client: TStompClient);
     procedure StompClientError(Client: TStompClient; Msg, Content: String);
@@ -39,6 +43,10 @@ type
     procedure StompClientConnect(Client: TStompClient; Frame: TStompFrame);
     procedure StompClientSetOtherConnectHeaders(Host: String;
       Port: Integer; var ConnectFrame: TStompFrame);
+    procedure btClearClick(Sender: TObject);
+    procedure btSubClick(Sender: TObject);
+    procedure btUnsubClick(Sender: TObject);
+    procedure btSendClick(Sender: TObject);
   private
     { Private declarations }
     FQueueA: string;
@@ -124,12 +132,6 @@ procedure TForm1.StompClientConnect(Client: TStompClient;
   Frame: TStompFrame);
 begin
   Memo.Lines.Add('connected, SessionID:'+Frame.GetValue('session'));
-  Memo.Lines.Add('subscribe queue A');
-  self.FQueueA:= '/queue/'+edQueueA.Text;
-  self.FTopicB:= '/topic/'+edTopicB.Text;
-  StompClient.Subscribe(FQueueA, AUTO);
-  Memo.Lines.Add('subscribe topic B');
-  StompClient.Subscribe(FTopicB, AUTO);
   Frame.Free;
 end;
 
@@ -138,6 +140,29 @@ procedure TForm1.StompClientSetOtherConnectHeaders(Host: String;
 begin
   Memo.Lines.Add('On Set Other Connect Headers for '+Host+':'+IntToStr(Port));
   ConnectFrame.Add('hello', 'hello');
+end;
+
+procedure TForm1.btClearClick(Sender: TObject);
+begin
+  Memo.Lines.Clear;
+end;
+
+procedure TForm1.btSubClick(Sender: TObject);
+begin
+  Memo.Lines.Add('subscribe '+edDestName.Text);
+  self.StompClient.Subscribe(edDestName.Text, AUTO);
+end;
+
+procedure TForm1.btUnsubClick(Sender: TObject);
+begin
+  Memo.Lines.Add('unsubscribe '+edDestName.Text);
+  self.StompClient.UnsubscribeDest(edDestName.Text);
+end;
+
+procedure TForm1.btSendClick(Sender: TObject);
+begin
+  Memo.Lines.Add('send to '+edDestToSend.Text);
+  self.StompClient.SendText(edDestToSend.Text, edMsg.Text);
 end;
 
 end.
