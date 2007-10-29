@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="C:\sandbox\stomp\c\src"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="..\..\..\..\apr-1.2.11\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;APR_DECLARE_STATIC"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,7 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="apr-1.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="..\..\..\..\apr-1.2.11\LibD"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -116,8 +118,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="2"
+				AdditionalIncludeDirectories="..\..\..\..\apr-1.2.11\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;APR_DECLARE_STATIC"
+				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -134,7 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="apr-1.lib"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="..\..\..\..\apr-1.2.11\LibR"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

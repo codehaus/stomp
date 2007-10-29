@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	rc==APR_SUCCESS || die(-2, "Could not allocate pool", rc);
    
    fprintf(stdout, "Connecting......");
-   rc=stomp_connect( &connection, "localhost", 61613, pool);
+   rc=stomp_connect( &connection, "activemq1", 61613, pool);
 	rc==APR_SUCCESS || die(-2, "Could not connect", rc);
    fprintf(stdout, "OK\n");
       
@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
       apr_hash_set(frame.headers, "login", APR_HASH_KEY_STRING, "hchirino");          
       apr_hash_set(frame.headers, "passcode", APR_HASH_KEY_STRING, "letmein");          
       frame.body = NULL;
-      rc = stomp_write(connection, &frame);
+	  frame.body_length = -1;
+      rc = stomp_write(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not send frame", rc);
    }  
    fprintf(stdout, "OK\n");   
@@ -78,8 +79,9 @@ int main(int argc, char *argv[])
       frame.command = "SUB";
       frame.headers = apr_hash_make(pool);
       apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "/queue/FOO.BAR");      
+	  frame.body_length = -1;
       frame.body = NULL;
-      rc = stomp_write(connection, &frame);
+      rc = stomp_write(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not send frame", rc);
    }  
    fprintf(stdout, "OK\n");
@@ -91,8 +93,9 @@ int main(int argc, char *argv[])
       frame.headers = apr_hash_make(pool);
       apr_hash_set(frame.headers, "destination", APR_HASH_KEY_STRING, "/queue/FOO.BAR");
       
-      frame.body = "This is the message";
-      rc = stomp_write(connection, &frame);
+      frame.body_length = -1;
+	  frame.body = "This is the message";
+      rc = stomp_write(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not send frame", rc);
    }  
    fprintf(stdout, "OK\n");
@@ -112,8 +115,9 @@ int main(int argc, char *argv[])
       stomp_frame frame;
       frame.command = "DISCONNECT";
       frame.headers = NULL;
+	  frame.body_length = -1;
       frame.body = NULL;
-      rc = stomp_write(connection, &frame);
+      rc = stomp_write(connection, &frame, pool);
       rc==APR_SUCCESS || die(-2, "Could not send frame", rc);
    }  
    fprintf(stdout, "OK\n");

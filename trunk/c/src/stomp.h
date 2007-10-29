@@ -37,6 +37,7 @@ typedef struct stomp_frame {
    char *command;
    apr_hash_t *headers;
    char *body;
+   int body_length;
 } stomp_frame;
 
 
@@ -44,7 +45,7 @@ typedef struct stomp_frame {
 APR_DECLARE(apr_status_t) stomp_connect(stomp_connection **connection_ref, const char *hostname, int port, apr_pool_t *pool);
 APR_DECLARE(apr_status_t) stomp_disconnect(stomp_connection **connection_ref);
 
-APR_DECLARE(apr_status_t) stomp_write(stomp_connection *connection, stomp_frame *frame);
+APR_DECLARE(apr_status_t) stomp_write(stomp_connection *connection, stomp_frame *frame, apr_pool_t *pool);
 APR_DECLARE(apr_status_t) stomp_read(stomp_connection *connection, stomp_frame **frame, apr_pool_t *pool);
 
 #ifdef __cplusplus
