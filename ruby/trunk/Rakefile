@@ -24,9 +24,9 @@ task :default => ['test']
 
 spec = Gem::Specification.new do |s|
   s.name = "stomp"
-  s.version = "1.0.5"
-  s.author = "Brian McCallister"
-  s.email = "brianm@apache.org"
+  s.version = "1.0.6"
+  s.author = "Someone, possibly Andrew Kuklewicz"
+  s.email = "dev@stomp.codehaus.org"
   s.homepage = "http://stomp.codehaus.org/"
   s.platform = Gem::Platform::RUBY
   s.summary = "Ruby client for the Stomp messaging protocol"

@@ -23,18 +23,19 @@ module Stomp
   # synchronous receives
   class Connection
 
-    def Connection.open(login = "", passcode = "", host='localhost', port=61613, reliable=FALSE, reconnectDelay=5)
-      Connection.new login, passcode, host, port, reliable, reconnectDelay        
+    def Connection.open(login = "", passcode = "", host='localhost', port=61613, reliable=FALSE, reconnectDelay=5, clientId=nil)
+      Connection.new login, passcode, host, port, reliable, reconnectDelay, clientId
     end
 
     # Create a connection, requires a login and passcode.
     # Can accept a host (default is localhost), and port
     # (default is 61613) to connect to
-    def initialize(login, passcode, host='localhost', port=61613, reliable=false, reconnectDelay=5)
+    def initialize(login, passcode, host='localhost', port=61613, reliable=false, reconnectDelay=5, clientId=nil)
       @host = host
       @port = port
       @login = login
       @passcode = passcode
+      @clientId = clientId
       @transmit_semaphore = Mutex.new
       @read_semaphore = Mutex.new
       @socket_semaphore = Mutex.new
@@ -54,7 +55,9 @@ module Stomp
           @failure = NIL
           begin
             s = TCPSocket.open @host, @port
-            _transmit(s, "CONNECT", {:login => @login, :passcode => @passcode})
+            connect_headers = {:login => @login, :passcode => @passcode}
+            connect_headers[:"client-id"] = @clientId if @clientId
+            _transmit(s, "CONNECT", connect_headers)
             @connect = _receive(s)                        
             # replay any subscriptions.
             @subscriptions.each { |k,v| _transmit(s, "SUBSCRIBE", v) }
