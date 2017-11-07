@@ -222,6 +222,7 @@ APR_DECLARE(apr_status_t) stomp_read_buffer(stomp_connection *connection, char *
    // Keep reading bytes till end of frame is encountered.
 	while( 1 ) {
       
+		char is_failed = 0;
 		apr_size_t length = 1;
       apr_status_t rc = apr_socket_recv(connection->socket, tail->data+i, &length);
       CHECK_SUCCESS;
@@ -237,8 +238,11 @@ APR_DECLARE(apr_status_t) stomp_read_buffer(stomp_connection *connection, char *
             apr_socket_recv(connection->socket, endline, &length);
             CHECK_SUCCESS;
             if( endline[0] != '\n' ) {
-               return APR_EGENERAL;
+               // add by skymoondyy; used to skip error bytes till real end of frame
+               is_failed = 1;
+               continue;
             }
+            if (is_failed) return APR_EGENERAL;
             break;
          }
          
@@ -415,14 +419,44 @@ APR_DECLARE(apr_status_t) stomp_read(stomp_connection *connection, stomp_frame *
 
 			  f->body_length = atoi(content_length);
 			  f->body = apr_pcalloc(pool, f->body_length);
-			  rc = apr_socket_recv(connection->socket, f->body, &f->body_length);
-			  CHECK_SUCCESS;
+                          int seek = 0;
+			  apr_size_t len = f->body_length;
+                          // modify by skymoondyy, read till finish
+                          while(1)
+			  {
+				  rc = apr_socket_recv(connection->socket, (void*)f->body+seek, (apr_size_t *)&len);
+				  CHECK_SUCCESS;
+				  if((seek+len) < f->body_length)
+				  {
+					  seek += len;
+					  len = f->body_length - seek;
+					  continue;
+				  }else
+				  {
+					  break;
+				  }
+			  }
 
 			  // Expect a \n after the end
+			  /*
 			  rc = apr_socket_recv(connection->socket, endbuffer, &length);
 			  CHECK_SUCCESS;
 			  if(length != 2 || endbuffer[0] != '\0' || endbuffer[1] != '\n')
 				  return APR_EGENERAL;
+				  */
+			  //fixed by skymoondyy change read 2 byte once to read 1 byte twice
+			  length = 1;
+			  rc = apr_socket_recv(connection->socket, endbuffer, &length);
+			  CHECK_SUCCESS;
+			  if(length == 1) 
+			  {
+				  rc = apr_socket_recv(connection->socket, endbuffer+1, &length);
+			  }
+			  if(length != 1 || endbuffer[0] != '\0' || endbuffer[1] != '\n')
+			  {
+				  return APR_EGENERAL;
+			  }
+
 		  }
 		  else
 		  {
